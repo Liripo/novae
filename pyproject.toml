@@ -1,0 +1,18 @@
+[project]
+name = "novae"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Liripo", email = "liripo@qq.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "ag-ui-protocol>=0.1.19",
+    "agno[os]>=2.6.18",
+    "openai>=2.43.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.20,<0.12.0"]
+build-backend = "uv_build"
