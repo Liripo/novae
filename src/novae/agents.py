@@ -1,19 +1,38 @@
-from agno.agent import Agent
-from agno.models.openai import OpenAILike
-from agno.tools.coding import CodingTools
+"""The single built-in agent definition and seeding logic."""
+from fastapi import FastAPI
 
-from novae.config import get_config
+from agentscope.agent import ContextConfig, ReActConfig
+from agentscope.app.storage import AgentData, AgentRecord, StorageBase
 
-cfg = get_config()
-
-coding_tools = CodingTools(base_dir="./data",restrict_to_base_dir = False,all = True,allowed_commands = None)
-coding_tools.allowed_commands += ["Get-Location","&&","pwd"]
-
-novae_agent = Agent(
-    model=OpenAILike(id=cfg.model_id, api_key=cfg.api_key, base_url=cfg.base_url),
-    tools=[coding_tools],
-    instructions="You are a coding assistant. Use the coding tools to help the user.",
-    markdown=True,
-    stream=True,
-    add_history_to_context = True
+BUILTIN_AGENT_ID = "novae-builtin"
+BUILTIN_AGENT_NAME = "Novae"
+BUILTIN_AGENT_SYSTEM_PROMPT = (
+    "You are Novae, a coding assistant. Use the built-in tools "
+    "(Bash, Read, Write, Edit, Glob, Grep) to help the user with "
+    "software engineering tasks in the workspace."
 )
+
+# The user the built-in agent belongs to. For now every seeded user gets
+# the same built-in agent; extend here when multi-user scoping is needed.
+BUILTIN_AGENT_USER = "liripo"
+
+
+async def seed_builtin_agent(app: FastAPI) -> None:
+    """Ensure the single built-in agent exists for the default user."""
+    storage: StorageBase = app.state.storage
+    agents = await storage.list_agents(BUILTIN_AGENT_USER)
+    if any(a.id == BUILTIN_AGENT_ID for a in agents):
+        return
+    record = AgentRecord(
+        id=BUILTIN_AGENT_ID,
+        user_id=BUILTIN_AGENT_USER,
+        source="user",
+        data=AgentData(
+            id=BUILTIN_AGENT_ID,
+            name=BUILTIN_AGENT_NAME,
+            system_prompt=BUILTIN_AGENT_SYSTEM_PROMPT,
+            context_config=ContextConfig(),
+            react_config=ReActConfig(),
+        ),
+    )
+    await storage.upsert_agent(BUILTIN_AGENT_USER, record)

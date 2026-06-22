@@ -7,39 +7,44 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / ".env")
 
+
 @dataclass(frozen=True)
 class Config:
-    model_id: str
-    api_key: str
-    base_url: str
-    db_file: str
-    agent_name: str
+    redis_host: str
+    redis_port: int
+    redis_db: int
+    redis_password: str | None
+    workspace_root: Path
+    jwt_secret: str
+    jwt_expire_hours: int
 
 
 def get_config() -> Config:
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    base_url = os.getenv("OPENAI_BASE_URL", "")
-    model_id = os.getenv("NOVAE_MODEL", "")
-    if not (api_key and base_url and model_id):
-        raise RuntimeError(
-            "Missing model config: set OPENAI_API_KEY, OPENAI_BASE_URL, "
-            "NOVAE_MODEL (see .env.example)"
-        )
+    redis_host = os.getenv("NOVAE_REDIS_HOST", "localhost")
+    redis_port = int(os.getenv("NOVAE_REDIS_PORT", "6379"))
+    redis_db = int(os.getenv("NOVAE_REDIS_DB", "0"))
+    redis_password = os.getenv("NOVAE_REDIS_PASSWORD") or None
 
-    db_file = Path(
+    workspace_root = Path(
         os.getenv(
-            "NOVAE_HOME",
-            str(Path.home() / ".novae" / "novae_session.db"),
+            "NOVAE_WORKSPACE_ROOT",
+            str(ROOT_DIR / "data" / "workspaces"),
         )
     )
-    db_file.parent.mkdir(parents=True, exist_ok=True)
+    workspace_root.mkdir(parents=True, exist_ok=True)
 
-    agent_name = "novae"
+    jwt_secret = os.getenv(
+        "NOVAE_JWT_SECRET",
+        "novae-dev-jwt-secret-change-me-in-production",
+    )
+    jwt_expire_hours = int(os.getenv("NOVAE_JWT_EXPIRE_HOURS", "168"))
 
     return Config(
-        model_id=model_id,
-        api_key=api_key,
-        base_url=base_url,
-        db_file=str(db_file),
-        agent_name=agent_name,
+        redis_host=redis_host,
+        redis_port=redis_port,
+        redis_db=redis_db,
+        redis_password=redis_password,
+        workspace_root=workspace_root,
+        jwt_secret=jwt_secret,
+        jwt_expire_hours=jwt_expire_hours,
     )
