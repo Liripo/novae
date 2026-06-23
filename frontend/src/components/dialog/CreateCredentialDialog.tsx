@@ -43,6 +43,7 @@ export function CreateCredentialDialog({ open, onOpenChange, onCreated, defaultT
 	useEffect(() => {
 		if (!open) return;
 		setLoadingSchemas(true);
+		setCustomModels('');
 		credentialApi
 			.schemas()
 			.then((res) => {
@@ -62,7 +63,10 @@ export function CreateCredentialDialog({ open, onOpenChange, onCreated, defaultT
 	const handleTypeChange = (type: string) => {
 		setSelectedType(type);
 		setValues({});
+		setCustomModels('');
 	};
+
+	const [customModels, setCustomModels] = useState('');
 
 	const handleSubmit = async () => {
 		if (!selectedSchema) return;
@@ -74,6 +78,11 @@ export function CreateCredentialDialog({ open, onOpenChange, onCreated, defaultT
 				const val = values[key];
 				if (val !== undefined && val !== '') data[key] = val;
 			}
+			const models = customModels
+				.split('\n')
+				.map((s) => s.trim())
+				.filter(Boolean);
+			if (models.length > 0) data['custom_models'] = models;
 			await create({ data });
 			onOpenChange(false);
 			onCreated?.();
@@ -127,6 +136,16 @@ export function CreateCredentialDialog({ open, onOpenChange, onCreated, defaultT
 							onChange={(key, val) => setValues((prev) => ({ ...prev, [key]: val }))}
 						/>
 					)}
+					<Field>
+						<FieldLabel>{t('dialog-credential-create.customModels')}</FieldLabel>
+						<textarea
+							value={customModels}
+							onChange={(e) => setCustomModels(e.target.value)}
+							placeholder={t('dialog-credential-create.customModelsPlaceholder')}
+							rows={3}
+							className="w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+						/>
+					</Field>
 				</FieldGroup>
 				<DialogFooter>
 					<Button

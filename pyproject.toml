@@ -12,7 +12,11 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pyjwt>=2.10.0",
     "fastapi[standard]>=0.138.0",
+    "typer>=0.26.7",
 ]
+
+[project.scripts]
+novae = "novae.agents:app"
 
 [build-system]
 requires = ["uv_build>=0.11.20,<0.12.0"]

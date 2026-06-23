@@ -24,7 +24,7 @@ Role = Literal["user", "admin"]
 # built-in accounts (e.g. an admin). Runtime user management via API
 # can be layered on top of `UserStore` later.
 DEFAULT_USERS: tuple[tuple[str, str, Role], ...] = (
-    ("liripo", "liripo", "user"),
+    ("admin", "admin", "admin"),
 )
 
 
@@ -75,6 +75,20 @@ class UserStore:
             "role": role,
         }
         await self._client.set(self._key(username), json.dumps(record))
+
+    async def list_usernames(self) -> list[str]:
+        """返回所有已注册用户的用户名列表。"""
+        usernames = []
+        cursor = 0
+        while True:
+            cursor, keys = await self._client.scan(
+                cursor, match=f"{self.KEY_PREFIX}*"
+            )
+            for key in keys:
+                usernames.append(key.removeprefix(self.KEY_PREFIX))
+            if cursor == 0:
+                break
+        return usernames
 
     async def authenticate(self, username: str, password: str) -> dict | None:
         record = await self.get(username)

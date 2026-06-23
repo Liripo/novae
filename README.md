@@ -22,10 +22,11 @@ cp .env.example .env
 
 ```bash
 uv sync
-uv run fastapi dev ./src/novae/main.py
+uv run uvicorn novae.main:app --reload
 ```
 
-后端运行在 `http://localhost:8000`。
+> 直接调 `uv run fastapi dev` 在 Windows GBK 终端会因 emoji 报错，
+> 用上面的 `uvicorn` 命令避开。后端在 `http://localhost:8000`。
 
 ## 启动前端
 
@@ -41,7 +42,8 @@ Web UI 运行 `http://localhost:5173`。首次打开用账号登录（默认 `li
 
 ## 用户管理
 
-默认用户 `liripo` / `liripo`（role=user）在首次启动时自动写入 Redis。生产环境用脚本创建或更新用户（直接连 Redis，无需后端运行）：
+默认用户 `admin` / `admin`（role=admin）在首次启动时自动写入 Redis。
+生产环境用脚本创建或更新用户，并且暂时需要自己去掉默认用户的代码。
 
 ```bash
 uv run python scripts/create_user.py <用户名> <密码> [user|admin]
@@ -51,7 +53,3 @@ uv run python scripts/create_user.py admin <strong-password> admin
 
 用户记录保存在 Redis 的 `novae:user:<username>` 键下，密码以 PBKDF2-HMAC-SHA256 哈希存储。
 
-## 说明
-
-- `src/novae/main.py` 通过 `agentscope.app.create_app` 组装 Agent Service，包含 agent / chat / session / workspace / credential / schedule / model 等路由。
-- 已配置 CORS，允许 `http://localhost:5173` 访问后端。

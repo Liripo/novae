@@ -13,6 +13,7 @@ import {
 	DialogDescription,
 	DialogFooter,
 } from '@/components/ui/dialog';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field.tsx';
 import { useCredentials } from '@/hooks/useCredentials';
 import { useTranslation } from '@/i18n/useI18n';
 
@@ -29,6 +30,7 @@ export function EditCredentialDialog({ open, onOpenChange, credential, onUpdated
 	const [schema, setSchema] = useState<CredentialSchema | null>(null);
 	const [loadingSchema, setLoadingSchema] = useState(false);
 	const [values, setValues] = useState<Record<string, SchemaFormValue>>({});
+	const [customModels, setCustomModels] = useState('');
 	const [submitting, setSubmitting] = useState(false);
 
 	const type = credential.data.type as string | undefined;
@@ -36,6 +38,9 @@ export function EditCredentialDialog({ open, onOpenChange, credential, onUpdated
 	useEffect(() => {
 		if (!open || !type) return;
 		setLoadingSchema(true);
+		setCustomModels(
+			(credential.data.custom_models as string[] | undefined)?.join('\n') ?? '',
+		);
 		credentialApi
 			.schemas()
 			.then((res) => {
@@ -70,6 +75,12 @@ export function EditCredentialDialog({ open, onOpenChange, credential, onUpdated
 				const val = values[key];
 				if (val !== undefined && val !== '') data[key] = val;
 			}
+			const models = customModels
+				.split('\n')
+				.map((s) => s.trim())
+				.filter(Boolean);
+			if (models.length > 0) data['custom_models'] = models;
+			else delete data['custom_models'];
 			await update(credential.id, { data });
 			onOpenChange(false);
 			onUpdated?.();
@@ -88,11 +99,23 @@ export function EditCredentialDialog({ open, onOpenChange, credential, onUpdated
 				{loadingSchema ? (
 					<p className="text-muted-foreground text-sm">{t('common.loading')}</p>
 				) : schema ? (
-					<SchemaForm
-						schema={schema}
-						values={values}
-						onChange={(key, val) => setValues((prev) => ({ ...prev, [key]: val }))}
-					/>
+					<FieldGroup>
+						<SchemaForm
+							schema={schema}
+							values={values}
+							onChange={(key, val) => setValues((prev) => ({ ...prev, [key]: val }))}
+						/>
+						<Field>
+							<FieldLabel>{t('dialog-credential-edit.customModels')}</FieldLabel>
+							<textarea
+								value={customModels}
+								onChange={(e) => setCustomModels(e.target.value)}
+								placeholder={t('dialog-credential-edit.customModelsPlaceholder')}
+								rows={3}
+								className="w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+							/>
+						</Field>
+					</FieldGroup>
 				) : null}
 				<DialogFooter>
 					<Button

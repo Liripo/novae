@@ -278,6 +278,27 @@ function DetailPanel({ credential, schema, onEdit, onDelete }: DetailPanelProps)
 						))}
 					</div>
 				)}
+				{(() => {
+					const custom = credential.data.custom_models as string[] | undefined;
+					if (!Array.isArray(custom) || custom.length === 0) return null;
+					return (
+						<>
+							<h3 className="text-sm font-semibold">
+								{t('credential.customModels')}({custom.length})
+							</h3>
+							<div className="flex flex-wrap gap-2">
+								{custom.map((name) => (
+									<span
+										key={name}
+										className="inline-flex items-center rounded-md border border-input bg-accent/30 px-2 py-0.5 text-xs font-mono"
+									>
+										{name}
+									</span>
+								))}
+							</div>
+						</>
+					);
+				})()}
 			</div>
 
 			{/* Available TTS Models */}

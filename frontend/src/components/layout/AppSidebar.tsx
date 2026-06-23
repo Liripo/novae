@@ -122,8 +122,8 @@ export function AppSidebar() {
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							tooltip={{ children: t('common.settings'), hidden: false }}
-							isActive={location.pathname === '/setup'}
-							onClick={() => navigate('/setup')}
+							isActive={location.pathname === '/login'}
+							onClick={() => navigate('/login')}
 							className="px-2"
 						>
 							<Settings />

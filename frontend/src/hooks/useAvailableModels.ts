@@ -30,12 +30,36 @@ export function useAvailableModels() {
 					const type = credential.data.type as string | undefined;
 					if (!type) return;
 					if (!result[type]) result[type] = [];
+					let models: ModelCard[];
 					try {
-						const { models } = await modelApi.list(type);
-						result[type].push({ credential, models });
+						const resp = await modelApi.list(type);
+						models = resp.models;
 					} catch {
-						result[type].push({ credential, models: [] });
+						models = [];
 					}
+					// Merge custom_models stored in credential data
+					const custom = credential.data.custom_models as string[] | undefined;
+					if (Array.isArray(custom) && custom.length > 0) {
+						const seen = new Set(models.map((m) => m.name));
+						for (const name of custom) {
+							if (!seen.has(name)) {
+								models.push({
+									type: 'chat_model',
+									name,
+									label: name,
+									status: 'active',
+									deprecated_at: null,
+									input_types: [],
+									output_types: [],
+									context_size: 0,
+									output_size: 0,
+									parameter_schema: {},
+									parameters_overrides: {},
+								});
+							}
+						}
+					}
+					result[type].push({ credential, models });
 				}),
 			);
 

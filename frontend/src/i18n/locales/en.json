@@ -189,7 +189,8 @@
 		"maxOutput": "Max. Output",
 		"inputTypes": "Input",
 		"outputTypes": "Output",
-		"availableTTSModels": "TTS Models"
+		"availableTTSModels": "TTS Models",
+		"customModels": "Custom Models"
 	},
 	"llm-select": {
 		"placeholder": "Select a model",
