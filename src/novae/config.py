@@ -1,7 +1,9 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-
+from pydantic import SecretStr
+from agentscope.model import OpenAIChatModel
+from agentscope.credential import OpenAICredential
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -47,4 +49,19 @@ def get_config() -> Config:
         workspace_root=workspace_root,
         jwt_secret=jwt_secret,
         jwt_expire_hours=jwt_expire_hours,
+    )
+
+
+def get_model() -> OpenAIChatModel:
+    api_key = os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENAI_BASE_URL")
+    model_name = os.getenv("NOVAE_MODEL")
+    if not api_key or not model_name or not base_url:
+        raise ValueError("Missing required environment variables: OPENAI_API_KEY, OPENAI_BASE_URL, NOVAE_MODEL")
+
+    return OpenAIChatModel(
+        model=model_name,
+        credential=OpenAICredential(
+            api_key=SecretStr(api_key), base_url=base_url
+        ),
     )

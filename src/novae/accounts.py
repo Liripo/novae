@@ -1,4 +1,4 @@
-"""JWT authentication and Redis-backed user accounts for Novae.
+"""Redis-backed user accounts and JWT authentication for Novae.
 
 Users are stored in Redis under ``novae:user:{username}`` as a JSON blob
 with ``username``, ``password_hash``, ``salt`` and ``role``. Passwords are
@@ -12,7 +12,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 import jwt
-from fastapi import Header, HTTPException, status
 from redis.asyncio import Redis
 
 from novae.config import Config
@@ -112,38 +111,6 @@ def create_token(cfg: Config, username: str, role: Role) -> str:
 
 def decode_token(cfg: Config, token: str) -> dict:
     return jwt.decode(token, cfg.jwt_secret, algorithms=["HS256"])
-
-
-async def get_current_user_id(
-    cfg: Config,
-    authorization: str = Header(default=""),
-) -> str:
-    """FastAPI dependency: validate the Bearer JWT and return the username."""
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing bearer token.",
-        )
-    token = authorization.removeprefix("Bearer ").strip()
-    try:
-        payload = decode_token(cfg, token)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired.",
-        )
-    except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token.",
-        )
-    username = payload.get("sub")
-    if not username:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload.",
-        )
-    return username
 
 
 async def seed_default_users(store: UserStore) -> None:

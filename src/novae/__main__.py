@@ -1,3 +1,3 @@
-from novae.agents import app
+from novae.main import app
 
 app()

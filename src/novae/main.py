@@ -1,159 +1,41 @@
-from contextlib import asynccontextmanager
+import asyncio
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
-from fastapi.middleware import Middleware
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from redis.asyncio import Redis as AsyncRedis
+import typer
+from loguru import logger
+from typer import Typer, Argument, Option
 
-from agentscope.app import create_app
-from agentscope.app._lifespan import lifespan as _agentscope_lifespan
-from agentscope.app.deps import get_current_user_id as _agentscope_get_user_id
-from agentscope.app.message_bus import RedisMessageBus
-from agentscope.app.storage import RedisStorage
-from agentscope.app.workspace_manager import LocalWorkspaceManager
-
-from novae.agents import seed_builtin_agent
-from novae.auth import (
-    UserStore,
-    create_token,
-    decode_token,
-    seed_default_users,
-)
-from novae.config import get_config
-
-cfg = get_config()
+from novae.agents import agents
+from novae.console import print_response_stream
+from agentscope.message import UserMsg
+from agentscope.permission import PermissionMode
 
 
-async def _jwt_user_id(
-    authorization: str = Header(
-        default="",
-        description="Bearer JWT token. Obtained from POST /auth/login.",
-    ),
-) -> str:
-    """Validate the Bearer JWT and return the authenticated username."""
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing bearer token.",
-        )
-    token = authorization.removeprefix("Bearer ").strip()
-    try:
-        payload = decode_token(cfg, token)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
-        )
-    username = payload.get("sub")
-    if not username:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload.",
-        )
-    return username
+app = Typer(invoke_without_command=True, context_settings={"help_option_names": ["-h", "--help"]})
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    """Novae 智能体 CLI。"""
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
 
 
-class LoginResponse(BaseModel):
-    token: str
-    username: str
-    role: str
+@app.command()
+def chat(
+    message: str = Argument(..., help="发送的消息"),
+    agent_id: str = Option("novae", help="智能体 ID"),
+    stream: bool = Option(True, "--stream/--no-stream", help="是否流式输出"),
+) -> None:
+    """向指定智能体发送一条消息并打印回复。"""
+    agent = next(a for a in agents if a.name == agent_id)
+    if stream:
+        asyncio.run(print_response_stream(agent, message))
+    else:
+        logger.info("非流式输出模式，设置权限自动确认，尽量少用。")
+        agent.state.permission_context.mode = PermissionMode.BYPASS
+        msg = asyncio.run(agent.reply(inputs=UserMsg(name="user", content=message)))
+        print(msg)
 
 
-class MeResponse(BaseModel):
-    username: str
-    role: str
-
-
-@asynccontextmanager
-async def novae_lifespan(app: FastAPI):
-    """Extend the AgentScope lifespan to seed built-in users and agent."""
-    async with _agentscope_lifespan(app):
-        redis = AsyncRedis(
-            host=cfg.redis_host,
-            port=cfg.redis_port,
-            db=cfg.redis_db,
-            password=cfg.redis_password,
-            decode_responses=True,
-        )
-        app.state.novae_user_store = UserStore(redis)
-        try:
-            await seed_default_users(app.state.novae_user_store)
-            await seed_builtin_agent(app)
-            yield
-        finally:
-            await redis.aclose()
-
-
-app: FastAPI = create_app(
-    storage=RedisStorage(
-        host=cfg.redis_host,
-        port=cfg.redis_port,
-        db=cfg.redis_db,
-        password=cfg.redis_password,
-    ),
-    message_bus=RedisMessageBus(
-        host=cfg.redis_host,
-        port=cfg.redis_port,
-        db=cfg.redis_db,
-        password=cfg.redis_password,
-    ),
-    workspace_manager=LocalWorkspaceManager(
-        basedir=str(cfg.workspace_root),
-    ),
-    title="Novae",
-    extra_middlewares=[
-        Middleware(
-            CORSMiddleware,
-            allow_origins=["http://localhost:5173"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        ),
-    ],
-)
-
-# Replace the lifespan so seeding runs after AgentScope resources are up.
-app.router.lifespan_context = novae_lifespan
-
-# Override the AgentScope user-id dependency with our JWT-based one.
-app.dependency_overrides[_agentscope_get_user_id] = _jwt_user_id
-
-
-@app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
-
-
-@app.post("/auth/login", response_model=LoginResponse)
-async def login(body: LoginRequest) -> LoginResponse:
-    user_store: UserStore = app.state.novae_user_store
-    record = await user_store.authenticate(body.username, body.password)
-    if record is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password.",
-        )
-    token = create_token(cfg, record["username"], record["role"])
-    return LoginResponse(
-        token=token,
-        username=record["username"],
-        role=record["role"],
-    )
-
-
-@app.get("/auth/me", response_model=MeResponse)
-async def me(username: str = Depends(_jwt_user_id)) -> MeResponse:
-    user_store: UserStore = app.state.novae_user_store
-    record = await user_store.get(username)
-    if record is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-        )
-    return MeResponse(username=record["username"], role=record["role"])
+if __name__ == "__main__":
+    app()
