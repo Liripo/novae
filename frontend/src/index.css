@@ -2,6 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
+@import "tw-shimmer";
 
 @plugin '@tailwindcss/typography';
 
@@ -21,8 +22,8 @@ body,
 	--border: oklch(0.922 0 0);
 	--code-bg: #f4f3ec;
 	--accent: oklch(0.97 0 0);
-	--accent-bg: rgba(170, 59, 255, 0.1);
-	--accent-border: rgba(170, 59, 255, 0.5);
+	--accent-bg: rgba(13, 148, 136, 0.1);
+	--accent-border: rgba(13, 148, 136, 0.5);
 	--social-bg: rgba(244, 243, 236, 0.5);
 	--shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
@@ -56,7 +57,7 @@ body,
 
 	--popover-foreground: oklch(0.145 0 0);
 
-	--primary: oklch(0.205 0 0);
+	--primary: oklch(0.585 0.115 170);
 
 	--primary-foreground: oklch(0.985 0 0);
 
@@ -74,7 +75,7 @@ body,
 
 	--input: oklch(0.922 0 0);
 
-	--ring: oklch(0.708 0 0);
+	--ring: oklch(0.765 0.12 170);
 
 	--chart-1: oklch(0.87 0 0);
 
@@ -92,7 +93,7 @@ body,
 
 	--sidebar-foreground: oklch(0.145 0 0);
 
-	--sidebar-primary: oklch(0.205 0 0);
+	--sidebar-primary: oklch(0.585 0.115 170);
 
 	--sidebar-primary-foreground: oklch(0.985 0 0);
 
@@ -102,7 +103,7 @@ body,
 
 	--sidebar-border: oklch(0.922 0 0);
 
-	--sidebar-ring: oklch(0.708 0 0);
+	--sidebar-ring: oklch(0.765 0.12 170);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -112,9 +113,9 @@ body,
 		--bg: #16171d;
 		--border: #2e303a;
 		--code-bg: #1f2028;
-		--accent: #c084fc;
-		--accent-bg: rgba(192, 132, 252, 0.15);
-		--accent-border: rgba(192, 132, 252, 0.5);
+		--accent: #2dd4bf;
+		--accent-bg: rgba(45, 212, 191, 0.15);
+		--accent-border: rgba(45, 212, 191, 0.5);
 		--social-bg: rgba(47, 48, 58, 0.5);
 		--shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 	}
@@ -165,6 +166,22 @@ body,
 	--radius-2xl: calc(var(--radius) * 1.8);
 	--radius-3xl: calc(var(--radius) * 2.2);
 	--radius-4xl: calc(var(--radius) * 2.6);
+  @keyframes collapsible-down {
+  from {
+    height: 0;
+		}
+  to {
+    height: var(--radix-collapsible-content-height, var(--collapsible-panel-height, auto));
+		}
+	}
+  @keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height, var(--collapsible-panel-height, auto));
+		}
+  to {
+    height: 0;
+		}
+	}
 }
 
 .dark {
@@ -174,7 +191,7 @@ body,
 	--card-foreground: oklch(0.985 0 0);
 	--popover: oklch(0.205 0 0);
 	--popover-foreground: oklch(0.985 0 0);
-	--primary: oklch(0.922 0 0);
+	--primary: oklch(0.765 0.13 165);
 	--primary-foreground: oklch(0.205 0 0);
 	--secondary: oklch(0.269 0 0);
 	--secondary-foreground: oklch(0.985 0 0);
@@ -185,7 +202,7 @@ body,
 	--destructive: oklch(0.704 0.191 22.216);
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
-	--ring: oklch(0.556 0 0);
+	--ring: oklch(0.585 0.115 170);
 	--chart-1: oklch(0.87 0 0);
 	--chart-2: oklch(0.556 0 0);
 	--chart-3: oklch(0.439 0 0);
@@ -193,12 +210,12 @@ body,
 	--chart-5: oklch(0.269 0 0);
 	--sidebar: oklch(0.205 0 0);
 	--sidebar-foreground: oklch(0.985 0 0);
-	--sidebar-primary: oklch(0.488 0.243 264.376);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-primary: oklch(0.765 0.13 165);
+	--sidebar-primary-foreground: oklch(0.205 0 0);
 	--sidebar-accent: oklch(0.269 0 0);
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
-	--sidebar-ring: oklch(0.556 0 0);
+	--sidebar-ring: oklch(0.585 0.115 170);
 }
 
 @layer base {
@@ -212,3 +229,11 @@ body,
 		@apply font-sans;
 	}
 }
+
+/*---break---*/
+
+@custom-variant data-open (&:where([data-state="open"], [data-open]:not([data-open="false"])));
+
+/*---break---*/
+
+@custom-variant data-closed (&:where([data-state="closed"], [data-closed]:not([data-closed="false"])));

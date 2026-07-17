@@ -1,8 +1,8 @@
-import { BotMessageSquare, Calendars, Compass, KeyRound, Languages, Settings } from 'lucide-react';
+import { BotMessageSquare, Calendars, Compass } from 'lucide-react';
 import { useOnborda } from 'onborda';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import AgentScope from '@/assets/images/agentscope.svg?react';
+import Logo from '@/assets/images/novae.svg?react';
 import { CHAT_TOUR_NAME } from '@/components/tour/chatTourSteps';
 import {
 	Sidebar,
@@ -15,7 +15,6 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import i18n from '@/i18n';
 import { useTranslation } from '@/i18n/useI18n';
 
 export function AppSidebar() {
@@ -35,16 +34,11 @@ export function AppSidebar() {
 		}
 	};
 
-	const handleToggleLanguage = () => {
-		const next = i18n.language.startsWith('zh') ? 'en' : 'zh';
-		i18n.changeLanguage(next);
-	};
-
 	return (
 		<Sidebar collapsible="none" className="w-[calc(var(--sidebar-width-icon)+1px)]! border-r">
 			<SidebarHeader>
 				<div className="flex items-center justify-center h-12 mt-2">
-					<AgentScope className="size-8 items-center justify-center rounded-lg" />
+					<Logo className="size-8 items-center justify-center rounded-lg" />
 				</div>
 			</SidebarHeader>
 			<SidebarContent>
@@ -77,39 +71,9 @@ export function AppSidebar() {
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
-				<SidebarGroup>
-					<SidebarGroupContent>
-						<SidebarMenu>
-							<SidebarMenuItem>
-								<SidebarMenuButton
-									tooltip={{ children: t('common.credential'), hidden: false }}
-									isActive={location.pathname === '/credential'}
-									onClick={() => navigate('/credential')}
-									className="px-2"
-								>
-									<KeyRound />
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>
-					<SidebarMenuItem>
-						<SidebarMenuButton
-							tooltip={{
-								children: i18n.language.startsWith('zh')
-									? t('common.switchToEn')
-									: t('common.switchToZh'),
-								hidden: false,
-							}}
-							onClick={handleToggleLanguage}
-							className="px-2"
-						>
-							<Languages />
-						</SidebarMenuButton>
-					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							tooltip={{ children: t('tour.trigger'), hidden: false }}
@@ -117,16 +81,6 @@ export function AppSidebar() {
 							className="px-2"
 						>
 							<Compass />
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-					<SidebarMenuItem>
-						<SidebarMenuButton
-							tooltip={{ children: t('common.settings'), hidden: false }}
-							isActive={location.pathname === '/login'}
-							onClick={() => navigate('/login')}
-							className="px-2"
-						>
-							<Settings />
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>

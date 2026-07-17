@@ -1,5 +1,8 @@
 import { toast } from 'sonner';
 
+import i18n from '@/i18n';
+import { chatErrorMessage } from '@/utils/chatError';
+
 export const getBaseUrl = () =>
 	(import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8000';
 
@@ -15,6 +18,12 @@ export const clearAuth = () => {
 
 export const getStoredUser = () => localStorage.getItem(USER_KEY) ?? '';
 export const setStoredUser = (username: string) => localStorage.setItem(USER_KEY, username);
+
+/** Clear the stored credentials and bounce back to the login page. */
+export const logout = () => {
+	clearAuth();
+	location.assign('/login');
+};
 
 /** Redirect to /login when a request is unauthorized. */
 function handleUnauthorized() {
@@ -90,7 +99,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 	if (!res.ok) {
 		const detail = await extractErrorDetail(res);
 		const error = new ApiError(res.status, detail);
-		if (!silent) toast.error(detail);
+		if (!silent) toast.error(chatErrorMessage(i18n.t, error));
 		throw error;
 	}
 
@@ -123,7 +132,7 @@ async function streamRequest(
 	if (!res.ok) {
 		const detail = await extractErrorDetail(res);
 		const error = new ApiError(res.status, detail);
-		if (!silent) toast.error(detail);
+		if (!silent) toast.error(chatErrorMessage(i18n.t, error));
 		throw error;
 	}
 

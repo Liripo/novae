@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { sessionApi } from '../api';
-import type { SessionView, CreateSessionRequest, UpdateSessionRequest } from '../api';
+import type {
+	AgentRecord,
+	SessionView,
+	CreateSessionRequest,
+	UpdateSessionRequest,
+} from '../api';
 
 /**
  * Manages session views for a given agent.
@@ -73,4 +78,43 @@ export function useSessions(agentId: string | null) {
 	);
 
 	return { sessions, loading, error, refetch, create, update, remove };
+}
+
+/**
+ * Fetches sessions across every agent and merges them into one list.
+ *
+ * The chat sidebar groups sessions by project (``workspace_id``), and
+ * projects may be bound to different agents — so a per-agent listing is
+ * not enough to render the tree. CRUD helpers stay on `useSessions`;
+ * this hook is read-only plus `refetch`.
+ *
+ * @param agents - The agents whose sessions to load.
+ * @returns Object with the merged `sessions` array plus `loading` flag
+ *   and a `refetch` helper.
+ */
+export function useAllSessions(agents: AgentRecord[]) {
+	const [sessions, setSessions] = useState<SessionView[]>([]);
+	const [loading, setLoading] = useState(false);
+
+	const refetch = useCallback(async () => {
+		if (agents.length === 0) {
+			setSessions([]);
+			return;
+		}
+		setLoading(true);
+		try {
+			const results = await Promise.all(agents.map((a) => sessionApi.list(a.id)));
+			setSessions(results.flatMap((r) => r.sessions));
+		} catch {
+			// Keep the previous list on failure — the sidebar stays usable.
+		} finally {
+			setLoading(false);
+		}
+	}, [agents]);
+
+	useEffect(() => {
+		refetch();
+	}, [refetch]);
+
+	return { sessions, loading, refetch };
 }

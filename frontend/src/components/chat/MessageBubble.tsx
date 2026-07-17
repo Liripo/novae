@@ -552,6 +552,7 @@ export function MessageBubble({ message, onUserConfirm }: MessageBubbleProps) {
 	return (
 		<div
 			className={`flex flex-col w-full max-w-full ${isUser ? 'items-end' : 'items-start'} mb-4`}
+			title={new Date(message.created_at).toLocaleString()}
 		>
 			{showBody && (
 				<div

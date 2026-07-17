@@ -1,25 +1,35 @@
 import {
 	BotMessageSquare,
 	CalendarClock,
+	ChevronRight,
 	Ellipsis,
+	Folder,
+	FolderOpen,
+	FolderPlus,
+	LogOut,
 	MessageSquareDashed,
+	MessageSquarePlus,
 	Pencil,
 	Plus,
-	Settings2,
+	Settings,
 	Trash2,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { ChatViewport } from './ChatViewport';
-import type { SessionRecord } from '@/api';
-import { AgentDialog } from '@/components/dialog/AgentDialog';
+import type { Project, SessionRecord, SessionView } from '@/api';
+import { sessionApi } from '@/api';
+import { getStoredUser, logout } from '@/api/client';
+import Logo from '@/assets/images/novae.svg?react';
 import { DeleteDialog } from '@/components/dialog/DeleteDialog';
-import { EditAgentDialog } from '@/components/dialog/EditAgentDialog';
+import { ProjectDialog, type ProjectFormValues } from '@/components/dialog/ProjectDialog';
 import { RenameSessionDialog } from '@/components/dialog/RenameSessionDialog';
+import { useSettingsDialog } from '@/components/dialog/SettingsDialog';
 import { TeamSidebar } from '@/components/team/TeamSidebar';
 import { ChatTourController } from '@/components/tour/ChatTourController';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -35,13 +45,6 @@ import {
 	EmptyMedia,
 } from '@/components/ui/empty';
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select';
-import {
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
@@ -51,29 +54,35 @@ import {
 	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
-	SidebarMenuAction,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarMenuSub,
+	SidebarMenuSubButton,
+	SidebarMenuSubItem,
 	SidebarProvider,
 	useSidebar,
 } from '@/components/ui/sidebar';
 import { AudioProvider } from '@/context/AudioContext';
 import { useAgents } from '@/hooks/useAgents';
-import { useSessions } from '@/hooks/useSessions';
+import { useProjects } from '@/hooks/useProjects';
+import { useAllSessions, useSessions } from '@/hooks/useSessions';
 import { useTranslation } from '@/i18n/useI18n.ts';
+import { cn } from '@/lib/utils';
 
 /**
  * The chat page's outer shell. Responsibilities split cleanly:
  *
  * - **This component** owns *which* `(agent, session)` is being
  *   viewed. The URL is the single source of truth: every selection
- *   (agent dropdown, session row, team member, new session) is a
- *   ``navigate(...)`` call. State is derived from ``useParams``,
- *   never duplicated in React state. Renders the main left sidebar
- *   (agent picker + session list + create/rename/delete actions) and
+ *   (project session row, "other session" row, team member, new
+ *   session) is a ``navigate(...)`` call. State is derived from
+ *   ``useParams``, never duplicated in React state. Renders the
+ *   SciOmni-style left sidebar (brand + "新项目" + project tree with
+ *   nested sessions + legacy "其他会话" group + user footer) and
  *   computes the ``effective`` ids to feed the chat viewport.
  * - **`ChatViewport`** owns *what* to render for that pair: messages,
- *   model selector, permission mode, workspace drawer, team sidebar.
+ *   model selector, permission mode, workspace drawer, and the right
+ *   panel (tasks + project files).
  *
  * Splitting along this seam means switching between the leader's
  * session and a focused team member is just a prop change for the
@@ -95,26 +104,58 @@ const ChatPageInner = () => {
 		memberId?: string;
 	}>();
 	const { t } = useTranslation();
-	const { agents, refetch: refetchAgents, remove: removeAgent } = useAgents();
+	const { agents } = useAgents();
 	const {
 		sessions,
 		refetch: refetchSessions,
-		create: createSession,
-		update: updateSession,
-		remove: removeSession,
 	} = useSessions(urlAgentId ?? null);
+	const {
+		projects,
+		create: createProject,
+		update: updateProject,
+		remove: removeProject,
+	} = useProjects();
+	const { sessions: allSessions, refetch: refetchAllSessions } = useAllSessions(agents);
 
 	const { isMobile, setOpen, setOpenMobile } = useSidebar();
-	const [editOpen, setEditOpen] = useState(false);
-	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [renameOpen, setRenameOpen] = useState(false);
 	const [renameSession, setRenameSession] = useState<SessionRecord | null>(null);
 	const [deleteSessionOpen, setDeleteSessionOpen] = useState(false);
 	const [sessionToDelete, setSessionToDelete] = useState<SessionRecord | null>(null);
+	const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+	const [editingProject, setEditingProject] = useState<Project | null>(null);
+	const [deleteProjectOpen, setDeleteProjectOpen] = useState(false);
+	const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+	// Collapse state per project id; absent = auto (open when it holds the
+	// current session).
+	const [projectOpen, setProjectOpen] = useState<Record<string, boolean>>({});
+	const [otherOpen, setOtherOpen] = useState(false);
 
-	const selectedAgent = agents.find((a) => a.id === urlAgentId) ?? null;
 	const currentView = sessions.find((v) => v.session.id === urlSessionId) ?? null;
-	const hasScheduleSessions = sessions.some((v) => v.session.source === 'schedule');
+	const hasScheduleSessions = allSessions.some((v) => v.session.source === 'schedule');
+	const username = getStoredUser();
+	const { openSettings } = useSettingsDialog();
+
+	// Group every session by its owning project (workspace_id match);
+	// sessions that belong to no known project fall into "其他会话".
+	const { sessionsByProject, otherSessions } = useMemo(() => {
+		const projectIds = new Set(projects.map((p) => p.id));
+		const byProject = new Map<string, SessionView[]>();
+		const others: SessionView[] = [];
+		for (const view of allSessions) {
+			const workspaceId = view.session.config?.workspace_id;
+			if (workspaceId && projectIds.has(workspaceId)) {
+				const list = byProject.get(workspaceId) ?? [];
+				list.push(view);
+				byProject.set(workspaceId, list);
+			} else {
+				others.push(view);
+			}
+		}
+		return { sessionsByProject: byProject, otherSessions: others };
+	}, [allSessions, projects]);
+
+	const currentProjectId = currentView?.session.config?.workspace_id ?? null;
 
 	// "Inner focus" — when the URL carries a third `:memberId` segment
 	// the user is drilling into a team member's chat. The main sidebar
@@ -149,43 +190,57 @@ const ChatPageInner = () => {
 		navigate(`/chat/${urlAgentId}/${sessions[0].session.id}`, { replace: true });
 	}, [urlAgentId, urlSessionId, sessions, navigate]);
 
+	const refetchBothSessionLists = async () => {
+		await Promise.all([refetchSessions(), refetchAllSessions()]);
+	};
+
 	/**
-	 * Create a new session under the currently selected agent and
-	 * pre-fill it with the model + fallback the currently open session
-	 * is using (so "new chat" inherits whatever the user just had
-	 * configured). Falls back to any other session under this agent
-	 * when there is no current one — keeps the model choice sticky
-	 * across "delete last → create new" instead of dropping back to
-	 * whatever ChatViewport's auto-pick happens to land on. Navigates
-	 * to the freshly created session.
+	 * Build the model-config seed for a new session under ``agentId``:
+	 * inherit the model + fallback of the currently open session when it
+	 * belongs to that agent, otherwise of any existing session under
+	 * that agent (keeps the model choice sticky across sessions).
 	 */
-	const handleCreateSession = async () => {
-		if (!urlAgentId) return;
-		const seedConfig = currentView?.session.config ?? sessions[0]?.session.config;
-		const res = await createSession({
-			agent_id: urlAgentId,
-			...(seedConfig?.chat_model_config
-				? { chat_model_config: seedConfig.chat_model_config }
-				: {}),
-			...(seedConfig?.fallback_chat_model_config
-				? { fallback_chat_model_config: seedConfig.fallback_chat_model_config }
-				: {}),
+	const seedModelConfig = (agentId: string) => {
+		const current =
+			currentView?.session.agent_id === agentId ? currentView.session.config : null;
+		const fallback = allSessions.find((v) => v.session.agent_id === agentId)?.session
+			.config;
+		const seed = current ?? fallback;
+		return seed
+			? {
+					...(seed.chat_model_config
+						? { chat_model_config: seed.chat_model_config }
+						: {}),
+					...(seed.fallback_chat_model_config
+						? { fallback_chat_model_config: seed.fallback_chat_model_config }
+						: {}),
+				}
+			: {};
+	};
+
+	/**
+	 * Create a session bound to a project (``workspace_id = project.id``)
+	 * under the project's agent, then navigate to it.
+	 */
+	const handleCreateSessionInProject = async (project: Project) => {
+		const res = await sessionApi.create({
+			agent_id: project.agent_id,
+			workspace_id: project.id,
+			...seedModelConfig(project.agent_id),
 		});
-		navigate(`/chat/${urlAgentId}/${res.session_id}`);
+		await refetchBothSessionLists();
+		navigate(`/chat/${project.agent_id}/${res.session_id}`);
+		setOpenMobile(false);
 	};
 
-	const handleAgentDeleted = async () => {
-		navigate('/chat', { replace: true });
-		await refetchAgents();
-	};
-
-	const handleDeleteSession = async (sessionId: string) => {
-		await removeSession(sessionId);
+	const handleDeleteSession = async (session: SessionRecord) => {
+		await sessionApi.delete(session.id, session.agent_id);
+		await refetchBothSessionLists();
 		// If we just removed the session the URL is pointing at, fall
 		// back to the parent /chat/:agentId path; the redirect effect
 		// will then pick the next available session.
-		if (sessionId === urlSessionId && urlAgentId) {
-			navigate(`/chat/${urlAgentId}`, { replace: true });
+		if (session.id === urlSessionId) {
+			navigate(`/chat/${session.agent_id}`, { replace: true });
 		}
 	};
 
@@ -196,13 +251,115 @@ const ChatPageInner = () => {
 
 	const handleRenameConfirm = async (name: string) => {
 		if (!renameSession) return;
-		await updateSession(renameSession.id, { name });
+		await sessionApi.update(renameSession.id, renameSession.agent_id, { name });
+		await refetchBothSessionLists();
+	};
+
+	const requestCreateProject = () => {
+		setEditingProject(null);
+		setProjectDialogOpen(true);
+	};
+
+	const requestRenameProject = (project: Project) => {
+		setEditingProject(project);
+		setProjectDialogOpen(true);
+	};
+
+	const requestDeleteProject = (project: Project) => {
+		setProjectToDelete(project);
+		setDeleteProjectOpen(true);
+	};
+
+	const handleProjectConfirm = async (values: ProjectFormValues) => {
+		if (editingProject) {
+			await updateProject(editingProject.id, {
+				name: values.name,
+				description: values.description,
+			});
+		} else {
+			await createProject(values);
+		}
+	};
+
+	const handleDeleteProjectConfirm = async () => {
+		if (!projectToDelete) return;
+		const wasCurrent = currentProjectId === projectToDelete.id;
+		await removeProject(projectToDelete.id);
+		await refetchBothSessionLists();
+		if (wasCurrent) {
+			navigate('/chat', { replace: true });
+		}
+	};
+
+	const openSession = (view: SessionView) => {
+		navigate(`/chat/${view.session.agent_id}/${view.session.id}`);
+		setOpenMobile(false);
+	};
+
+	const renderSessionIcon = (view: SessionView) =>
+		hasScheduleSessions ? (
+			view.session.source === 'schedule' ? (
+				<CalendarClock />
+			) : (
+				<BotMessageSquare />
+			)
+		) : null;
+
+	const renderSessionActions = (session: SessionRecord) => (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<button
+					type="button"
+					className="mr-1 rounded p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity group-hover/session:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 hover:bg-accent"
+					onClick={(e) => e.stopPropagation()}
+				>
+					<Ellipsis className="size-4" />
+				</button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent side="right" align="start">
+				<DropdownMenuItem
+					onClick={() => {
+						setRenameSession(session);
+						setRenameOpen(true);
+					}}
+				>
+					<Pencil />
+					{t('session-menu.rename')}
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					variant="destructive"
+					onClick={() => requestDeleteSession(session)}
+				>
+					<Trash2 />
+					{t('session-menu.delete')}
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+
+	const renderSessionRow = (view: SessionView) => {
+		const session = view.session;
+		return (
+			<SidebarMenuSubItem key={session.id} className="group/session relative">
+				<div className="flex items-center">
+					<SidebarMenuSubButton
+						isActive={urlSessionId === session.id}
+						onClick={() => openSession(view)}
+						className="flex-1 cursor-pointer"
+					>
+						{renderSessionIcon(view)}
+						<span className="truncate">{session.config.name || session.id}</span>
+					</SidebarMenuSubButton>
+					{renderSessionActions(session)}
+				</div>
+			</SidebarMenuSubItem>
+		);
 	};
 
 	return (
 		<div className="flex h-full w-full">
 			{/*
-			 * Desktop stays `collapsible="none"` so the session list sits in
+			 * Desktop stays `collapsible="none"` so the project tree sits in
 			 * normal flow beside the app rail (AppSidebar). Mobile switches to
 			 * `offcanvas`, which makes shadcn's Sidebar render its Sheet overlay
 			 * (the drawer we want) — instead of the desktop `fixed left-0`
@@ -211,163 +368,227 @@ const ChatPageInner = () => {
 			<Sidebar collapsible={isMobile ? 'offcanvas' : 'none'} className="border-r">
 				<SidebarHeader>
 					<div className="flex flex-col gap-y-2">
-						<span className="text-muted-foreground text-xs">
-							{localStorage.getItem('server_url')}
-						</span>
-						<div className="flex flex-row gap-x-2 items-center">
-							<Select
-								value={urlAgentId ?? ''}
-								onValueChange={(id) => navigate(`/chat/${id}`)}
-							>
-								<SelectTrigger className="w-full" size="sm">
-									<SelectValue placeholder={t('chat.agent.selectPlaceholder')} />
-								</SelectTrigger>
-								<SelectContent position="popper">
-									{agents.length === 0 ? (
-										<Empty className="border-none py-4">
-											<EmptyHeader>
-												<EmptyTitle>
-													{t('chat.agent.emptyTitle')}
-												</EmptyTitle>
-												<EmptyDescription>
-													{t('chat.agent.emptyDescription')}
-												</EmptyDescription>
-											</EmptyHeader>
-										</Empty>
-									) : (
-										agents.map((agent) => (
-											<SelectItem key={agent.id} value={agent.id}>
-												{agent.data.name}
-											</SelectItem>
-										))
-									)}
-								</SelectContent>
-							</Select>
-							<Button
-								size="icon"
-								variant="ghost"
-								disabled={!urlAgentId}
-								onClick={() => setEditOpen(true)}
-							>
-								<Settings2 />
-							</Button>
-							<Button
-								size="icon"
-								variant="ghost"
-								disabled={!urlAgentId}
-								onClick={() => setDeleteOpen(true)}
-							>
-								<Trash2 className="text-destructive" />
-							</Button>
+						<div className="flex items-center justify-between px-1 pt-1">
+							<div className="flex items-center gap-x-2">
+								<Logo className="size-7 shrink-0" />
+								<div className="flex flex-col">
+									<span className="text-base font-semibold tracking-wide">Novae</span>
+									<span className="text-muted-foreground text-xs">
+										{t('common.brandSubtitle')}
+									</span>
+								</div>
+							</div>
 						</div>
-						<AgentDialog onCreated={refetchAgents} triggerId="tour-create-agent" />
+						<Button
+							id="tour-create-project"
+							className="w-full"
+							disabled={agents.length === 0}
+							onClick={requestCreateProject}
+						>
+							<FolderPlus />
+							{t('chat.project.create')}
+						</Button>
+						{agents.length === 0 && (
+							<p className="px-1 text-muted-foreground text-xs">
+								{t('chat.project.noAgentHint')}
+							</p>
+						)}
 					</div>
 				</SidebarHeader>
-				<SidebarContent className="my-5">
+				<SidebarContent className="my-2">
 					<SidebarGroup>
-						<SidebarGroupLabel>{t('chat.session.label')}</SidebarGroupLabel>
+						<SidebarGroupLabel>{t('chat.project.label')}</SidebarGroupLabel>
 						<SidebarGroupAction asChild>
 							<div>
 								<Button
-									id="tour-create-session"
 									size="icon-xs"
 									variant="default"
-									disabled={!urlAgentId}
-									onClick={handleCreateSession}
+									disabled={agents.length === 0}
+									title={t('chat.project.create')}
+									onClick={requestCreateProject}
 								>
 									<Plus />
 								</Button>
 							</div>
 						</SidebarGroupAction>
 						<SidebarGroupContent>
-							{sessions.length === 0 ? (
+							{projects.length === 0 ? (
 								<Empty className="border-none py-4 min-h-50">
 									<EmptyHeader>
 										<EmptyMedia variant="icon">
-											<MessageSquareDashed />
+											<Folder />
 										</EmptyMedia>
-										<EmptyTitle>{t('chat.session.emptyTitle')}</EmptyTitle>
+										<EmptyTitle>{t('chat.project.emptyTitle')}</EmptyTitle>
 										<EmptyDescription>
-											{urlAgentId
-												? t('chat.session.emptyHasAgent')
-												: t('chat.session.emptyNoAgent')}
+											{t('chat.project.emptyDescription')}
 										</EmptyDescription>
 									</EmptyHeader>
 									<EmptyContent>
 										<Button
 											variant="outline"
 											size="sm"
-											disabled={!urlAgentId}
-											onClick={handleCreateSession}
+											disabled={agents.length === 0}
+											onClick={requestCreateProject}
 										>
-											Create Session
+											<FolderPlus />
+											{t('chat.project.create')}
 										</Button>
 									</EmptyContent>
 								</Empty>
 							) : (
 								<SidebarMenu>
-									{sessions.map((view) => {
-										const session = view.session;
+									{projects.map((project) => {
+										const isOpen =
+											projectOpen[project.id] ?? currentProjectId === project.id;
+										const projectSessions =
+											sessionsByProject.get(project.id) ?? [];
 										return (
-											<SidebarMenuItem key={session.id}>
-												<SidebarMenuButton
-													isActive={urlSessionId === session.id}
-													onClick={() => {
-														navigate(
-															`/chat/${urlAgentId}/${session.id}`,
-														);
-														setOpenMobile(false);
-													}}
-												>
-													{hasScheduleSessions &&
-														(session.source === 'schedule' ? (
-															<CalendarClock />
-														) : (
-															<BotMessageSquare />
-														))}
-													<span className="truncate">
-														{session.config.name || session.id}
-													</span>
-												</SidebarMenuButton>
-												<SidebarMenuAction showOnHover>
-													<DropdownMenu>
-														<DropdownMenuTrigger asChild>
-															<Ellipsis />
-														</DropdownMenuTrigger>
-														<DropdownMenuContent
-															side="right"
-															align="start"
-														>
-															<DropdownMenuItem
-																onClick={() => {
-																	setRenameSession(session);
-																	setRenameOpen(true);
-																}}
+											<Collapsible
+												key={project.id}
+												open={isOpen}
+												onOpenChange={(open) =>
+													setProjectOpen((prev) => ({
+														...prev,
+														[project.id]: open,
+													}))
+												}
+											>
+												<SidebarMenuItem className="group/project">
+													<div className="flex items-center">
+														<CollapsibleTrigger asChild>
+															<SidebarMenuButton
+																className="flex-1 cursor-pointer"
+																isActive={currentProjectId === project.id}
 															>
-																<Pencil />
-																{t('session-menu.rename')}
-															</DropdownMenuItem>
-															<DropdownMenuItem
-																variant="destructive"
-																onClick={() =>
-																	requestDeleteSession(session)
-																}
-															>
-																<Trash2 />
-																{t('session-menu.delete')}
-															</DropdownMenuItem>
-														</DropdownMenuContent>
-													</DropdownMenu>
-												</SidebarMenuAction>
-											</SidebarMenuItem>
+																<ChevronRight
+																	className={cn(
+																		'shrink-0 transition-transform',
+																		isOpen && 'rotate-90',
+																	)}
+																/>
+																{isOpen ? (
+																	<FolderOpen className="shrink-0" />
+																) : (
+																	<Folder className="shrink-0" />
+																)}
+																<span className="truncate">
+																	{project.name}
+																</span>
+															</SidebarMenuButton>
+														</CollapsibleTrigger>
+														<DropdownMenu>
+															<DropdownMenuTrigger asChild>
+																<button
+																	type="button"
+																	className="mr-1 rounded p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity group-hover/project:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 hover:bg-accent"
+																>
+																	<Ellipsis className="size-4" />
+																</button>
+															</DropdownMenuTrigger>
+															<DropdownMenuContent side="right" align="start">
+																<DropdownMenuItem
+																	onClick={() =>
+																		handleCreateSessionInProject(project)
+																	}
+																>
+																	<MessageSquarePlus />
+																	{t('chat.project.newSessionInProject')}
+																</DropdownMenuItem>
+																<DropdownMenuItem
+																	onClick={() => requestRenameProject(project)}
+																>
+																	<Pencil />
+																	{t('session-menu.rename')}
+																</DropdownMenuItem>
+																<DropdownMenuItem
+																	variant="destructive"
+																	onClick={() => requestDeleteProject(project)}
+																>
+																	<Trash2 />
+																	{t('session-menu.delete')}
+																</DropdownMenuItem>
+															</DropdownMenuContent>
+														</DropdownMenu>
+													</div>
+													<CollapsibleContent>
+														<SidebarMenuSub>
+															{projectSessions.length === 0 ? (
+																<SidebarMenuSubItem>
+																	<span className="px-2 py-1 text-muted-foreground text-xs">
+																		{t('chat.noSessions')}
+																	</span>
+																</SidebarMenuSubItem>
+															) : (
+																projectSessions.map(renderSessionRow)
+															)}
+														</SidebarMenuSub>
+													</CollapsibleContent>
+												</SidebarMenuItem>
+											</Collapsible>
 										);
 									})}
 								</SidebarMenu>
 							)}
 						</SidebarGroupContent>
 					</SidebarGroup>
+					{otherSessions.length > 0 && (
+						<SidebarGroup>
+							<Collapsible open={otherOpen} onOpenChange={setOtherOpen}>
+								<SidebarMenu>
+									<SidebarMenuItem>
+										<CollapsibleTrigger asChild>
+											<SidebarMenuButton className="cursor-pointer">
+												<ChevronRight
+													className={cn(
+														'shrink-0 transition-transform',
+														otherOpen && 'rotate-90',
+													)}
+												/>
+												<MessageSquareDashed className="shrink-0" />
+												<span className="truncate">
+													{t('chat.project.otherSessions')}
+												</span>
+												<span className="ml-auto text-muted-foreground text-xs">
+													{otherSessions.length}
+												</span>
+											</SidebarMenuButton>
+										</CollapsibleTrigger>
+										<CollapsibleContent>
+											<SidebarMenuSub>
+												{otherSessions.map(renderSessionRow)}
+											</SidebarMenuSub>
+										</CollapsibleContent>
+									</SidebarMenuItem>
+								</SidebarMenu>
+							</Collapsible>
+						</SidebarGroup>
+					)}
 				</SidebarContent>
-				<SidebarFooter />
+				<SidebarFooter>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<button
+								type="button"
+								className="flex w-full items-center gap-x-2 rounded-md px-1 py-1 text-left hover:bg-accent"
+							>
+								<span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground text-xs">
+									{(username || '?').charAt(0).toUpperCase()}
+								</span>
+								<span className="truncate text-sm">{username}</span>
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent side="top" align="start" className="w-44">
+							<DropdownMenuItem onClick={() => openSettings('account')}>
+								<Settings />
+								{t('common.settings')}
+							</DropdownMenuItem>
+							<DropdownMenuItem variant="destructive" onClick={logout}>
+								<LogOut />
+								{t('account.logout')}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</SidebarFooter>
 			</Sidebar>
 			{/*
 			 * Team sidebar lives at the outer page level (not inside
@@ -387,30 +608,6 @@ const ChatPageInner = () => {
 					onTeamUpdated={refetchSessions}
 				/>
 			</div>
-			{selectedAgent && (
-				<>
-					<EditAgentDialog
-						open={editOpen}
-						onOpenChange={setEditOpen}
-						agent={selectedAgent}
-						onUpdated={refetchAgents}
-					/>
-					<DeleteDialog
-						open={deleteOpen}
-						onOpenChange={setDeleteOpen}
-						title={t('common.deleteTitle', {
-							entity: t('dialog-agent-delete.entity'),
-							name: selectedAgent.data.name,
-						})}
-						description={t('common.deleteDescription')}
-						confirmLabel={t('dialog-agent-delete.confirm')}
-						onConfirm={async () => {
-							await removeAgent(selectedAgent.id);
-							await handleAgentDeleted();
-						}}
-					/>
-				</>
-			)}
 			<RenameSessionDialog
 				open={renameOpen}
 				onOpenChange={setRenameOpen}
@@ -428,13 +625,30 @@ const ChatPageInner = () => {
 				confirmLabel={t('dialog-session-delete.confirm')}
 				onConfirm={async () => {
 					if (sessionToDelete) {
-						await handleDeleteSession(sessionToDelete.id);
+						await handleDeleteSession(sessionToDelete);
 					}
 				}}
 			/>
+			<ProjectDialog
+				open={projectDialogOpen}
+				onOpenChange={setProjectDialogOpen}
+				project={editingProject}
+				agents={agents}
+				onConfirm={handleProjectConfirm}
+			/>
+			<DeleteDialog
+				open={deleteProjectOpen}
+				onOpenChange={setDeleteProjectOpen}
+				title={t('common.deleteTitle', {
+					entity: t('dialog-project-delete.entity'),
+					name: projectToDelete?.name ?? '',
+				})}
+				description={t('dialog-project-delete.description')}
+				confirmLabel={t('dialog-project-delete.confirm')}
+				onConfirm={handleDeleteProjectConfirm}
+			/>
 			<ChatTourController
-				agentsCount={agents.length}
-				sessionsCount={sessions.length}
+				projectsCount={projects.length}
 				onEnsureSidebarOpen={() => {
 					setOpen(true);
 					setOpenMobile(true);

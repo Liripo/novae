@@ -40,9 +40,6 @@ npm run dev
 
 ## 用户管理
 
-默认用户 `admin` / `admin`（role=admin）在首次启动时自动写入 Redis。
-生产环境用脚本创建或更新用户，并且暂时需要自己去掉默认管理员的代码。
-
 ```bash
 uv run python scripts/create_user.py <用户名> <密码> [user|admin]
 # 例：创建管理员

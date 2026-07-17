@@ -2,8 +2,7 @@ import { format } from 'date-fns';
 import { ChevronDownIcon, CircleAlert, Loader2, PlusCircle } from 'lucide-react';
 import * as React from 'react';
 
-import type { ChatModelConfig, PermissionMode } from '@/api';
-import { LlmSelect } from '@/components/select/LlmSelect';
+import type { PermissionMode } from '@/api';
 import { PermissionModeSelect } from '@/components/select/PermissionModeSelect';
 import { TimezoneSelect } from '@/components/select/TimezoneSelect';
 import { Button } from '@/components/ui/button';
@@ -52,7 +51,6 @@ function getDefaultForm() {
 		time: `${hh}:${mm}`,
 		endDate: undefined as Date | undefined,
 		agentId: '',
-		chatModelConfig: null as ChatModelConfig | null,
 		permissionMode: 'dont_ask' as PermissionMode,
 		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 		stateful: false,
@@ -139,8 +137,7 @@ export function CreateScheduleDialog({ open, onOpenChange, onCreated }: Props) {
 		value: ReturnType<typeof getDefaultForm>[K],
 	) => setForm((prev) => ({ ...prev, [key]: value }));
 
-	const isValid =
-		form.name.trim() && !!form.date && !!form.time && !!form.agentId && !!form.chatModelConfig;
+	const isValid = form.name.trim() && !!form.date && !!form.time && !!form.agentId;
 
 	const handleSubmit = async () => {
 		setError('');
@@ -159,13 +156,14 @@ export function CreateScheduleDialog({ open, onOpenChange, onCreated }: Props) {
 				cronExpression = buildCronExpr(form.freq, form.time, form.date);
 			}
 
+			// chat_model_config is intentionally omitted: the backend's
+			// EnvModelConfigMiddleware injects the .env-configured model.
 			await create({
 				name: form.name.trim(),
 				description: form.description.trim(),
 				cron_expression: cronExpression,
 				timezone: form.timezone,
 				agent_id: form.agentId,
-				chat_model_config: form.chatModelConfig!,
 				enabled: true,
 				stateful: form.stateful,
 				permission_mode: form.permissionMode,
@@ -290,14 +288,6 @@ export function CreateScheduleDialog({ open, onOpenChange, onCreated }: Props) {
 									))}
 								</SelectContent>
 							</Select>
-						</Field>
-
-						<Field orientation={'horizontal'}>
-							<FieldLabel>{t('common.model')}</FieldLabel>
-							<LlmSelect
-								value={form.chatModelConfig}
-								onChange={(v) => set('chatModelConfig', v)}
-							/>
 						</Field>
 
 						<Field orientation={'horizontal'}>

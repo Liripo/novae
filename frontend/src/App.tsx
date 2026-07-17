@@ -9,7 +9,6 @@ import { buildChatTour } from '@/components/tour/chatTourSteps';
 import { TourCard } from '@/components/tour/TourCard';
 import { useTranslation } from '@/i18n/useI18n';
 import { ChatPage } from '@/pages/chat';
-import { CredentialPage } from '@/pages/credential';
 import { SchedulePage } from '@/pages/schedule';
 import { LoginPage } from '@/pages/login';
 import { getToken } from '@/api/client';
@@ -40,7 +39,6 @@ const router = createBrowserRouter([
 						element: <ChatPage />,
 					},
 					{ path: '/schedule', element: <SchedulePage /> },
-					{ path: '/credential', element: <CredentialPage /> },
 				],
 			},
 		],

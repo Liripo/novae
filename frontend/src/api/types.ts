@@ -154,6 +154,55 @@ export interface SessionListResponse {
 	total: number;
 }
 
+// ─── Project ──────────────────────────────────────────────────────────────────
+
+export interface Project {
+	id: string;
+	name: string;
+	description: string;
+	agent_id: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateProjectRequest {
+	name: string;
+	description?: string;
+	agent_id: string;
+}
+
+export interface UpdateProjectRequest {
+	name?: string;
+	description?: string;
+}
+
+export interface ProjectListResponse {
+	projects: Project[];
+	total: number;
+}
+
+/** One node of a project's working-directory file tree. */
+export interface ProjectFileNode {
+	name: string;
+	/** POSIX path relative to the project workdir. */
+	path: string;
+	type: 'dir' | 'file';
+	/** Present for files only. */
+	size?: number | null;
+	/** Present for dirs only. */
+	children?: ProjectFileNode[];
+}
+
+export interface ProjectFilesResponse {
+	tree: ProjectFileNode[];
+}
+
+export interface ProjectFileContent {
+	path: string;
+	content: string;
+	truncated: boolean;
+}
+
 /**
  * Response body for `GET /schedule/{id}/sessions`. Returns plain
  * `SessionRecord[]` (no team / is_running enrichment) because
@@ -248,44 +297,6 @@ export interface JSONSchema {
 	type?: string;
 	properties: Record<string, JSONSchemaProperty>;
 	required?: string[];
-}
-
-// ─── Credential ───────────────────────────────────────────────────────────────
-
-export type CredentialSchemaProperty = JSONSchemaProperty;
-
-// Credential schemas always include title + type (Pydantic always emits them
-// for credential data classes); we narrow the generic JSONSchema here so call
-// sites that read `schema.title` don't have to do null-checks.
-export interface CredentialSchema extends JSONSchema {
-	title: string;
-	type: string;
-}
-
-export interface CredentialSchemasResponse {
-	schemas: CredentialSchema[];
-}
-
-export interface CredentialRecord extends RecordBase {
-	user_id: string;
-	data: Record<string, unknown>;
-}
-
-export interface CreateCredentialRequest {
-	data: Record<string, unknown>;
-}
-
-export interface CreateCredentialResponse {
-	credential_id: string;
-}
-
-export interface UpdateCredentialRequest {
-	data: Record<string, unknown>;
-}
-
-export interface CredentialListResponse {
-	credentials: CredentialRecord[];
-	total: number;
 }
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
@@ -391,7 +402,9 @@ export interface CreateScheduleRequest {
 	cron_expression: string;
 	timezone?: string;
 	agent_id: string;
-	chat_model_config: ChatModelConfig;
+	// Optional: when omitted, the backend injects the model from env
+	// (NOVAE_MODEL) via EnvModelConfigMiddleware.
+	chat_model_config?: ChatModelConfig;
 	enabled?: boolean;
 	stateful?: boolean;
 	permission_mode?: PermissionMode;
@@ -416,45 +429,3 @@ export interface ScheduleListResponse {
 	total: number;
 }
 
-// ─── Model ────────────────────────────────────────────────────────────────────
-
-export interface ModelCard {
-	type: 'chat_model';
-	name: string;
-	label: string;
-	status: 'active' | 'deprecated' | 'sunset';
-	deprecated_at: string | null;
-	input_types: string[];
-	output_types: string[];
-	context_size: number;
-	output_size: number;
-	parameter_schema: Record<string, unknown>;
-	parameters_overrides: Record<string, Record<string, unknown>>;
-}
-
-export interface ListModelRequest {
-	provider: string;
-}
-
-export interface ListModelResponse {
-	models: ModelCard[];
-	total: number;
-}
-
-export interface TTSModelCard {
-	type: 'tts_model';
-	name: string;
-	label: string;
-	status: 'active' | 'deprecated' | 'sunset';
-	deprecated_at: string | null;
-	input_types: string[];
-	output_types: string[];
-	realtime: boolean;
-	parameter_schema: Record<string, unknown>;
-	parameters_overrides: Record<string, Record<string, unknown>>;
-}
-
-export interface ListTTSModelResponse {
-	models: TTSModelCard[];
-	total: number;
-}

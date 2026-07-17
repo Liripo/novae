@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card.tsx';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field.tsx';
 import { Input } from '@/components/ui/input.tsx';
+import Logo from '@/assets/images/novae.svg?react';
 import { useTranslation } from '@/i18n/useI18n.ts';
 import { authApi } from '@/api';
 import { setStoredUser, setToken } from '@/api/client';
@@ -46,6 +47,9 @@ export const LoginPage = ({ onComplete, className }: Props) => {
 	return (
 		<div className="flex items-center justify-center h-full">
 			<div className={cn('flex flex-col gap-6 w-full max-w-sm', className)}>
+				<div className="flex justify-center">
+					<Logo className="size-12" />
+				</div>
 				<Card>
 					<CardHeader>
 						<CardTitle>{t('login.title')}</CardTitle>

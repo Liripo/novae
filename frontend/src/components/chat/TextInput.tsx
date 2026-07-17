@@ -33,6 +33,12 @@ interface TextInputProps {
 	placeholder?: string;
 	autoComplete?: (input: string) => string | null;
 	disabled?: boolean;
+	/**
+	 * True while a chat run is in flight. The textarea stays editable so
+	 * the user can draft the next message, but the send action (button +
+	 * Enter) is blocked — the backend allows only one run per session.
+	 */
+	busy?: boolean;
 	className?: string;
 	/**
 	 * Controls which file types the file picker accepts.
@@ -79,6 +85,7 @@ export const TextInput = forwardRef<TextInputRef, TextInputProps>(
 			placeholder,
 			autoComplete,
 			disabled = false,
+			busy = false,
 			className,
 			allowedInputTypes,
 			fileProcessor,
@@ -140,7 +147,7 @@ export const TextInput = forwardRef<TextInputRef, TextInputProps>(
 		};
 
 		const handleSend = () => {
-			if (!value.trim() || disabled || hasProcessing) return;
+			if (!value.trim() || disabled || busy || hasProcessing) return;
 
 			const blocks: ContentBlock[] = [];
 
@@ -164,6 +171,8 @@ export const TextInput = forwardRef<TextInputRef, TextInputProps>(
 			onSend?.(blocks);
 			setValue('');
 			setFiles([]);
+			// Keep the composer focused for the next message.
+			textareaRef.current?.focus();
 		};
 
 		const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,14 +345,20 @@ export const TextInput = forwardRef<TextInputRef, TextInputProps>(
 									<Button
 										type="button"
 										onClick={handleSend}
-										disabled={disabled || !value.trim() || hasProcessing}
+										disabled={disabled || busy || !value.trim() || hasProcessing}
 										size="icon"
 										className="shrink-0 rounded-full"
 									>
-										<Send className="h-4 w-4" />
+										{busy ? (
+											<Loader2 className="h-4 w-4 animate-spin" />
+										) : (
+											<Send className="h-4 w-4" />
+										)}
 									</Button>
 								</TooltipTrigger>
-								<TooltipContent>{t('textInput.send')}</TooltipContent>
+								<TooltipContent>
+									{busy ? t('messageBubble.running') : t('textInput.send')}
+								</TooltipContent>
 							</Tooltip>
 
 							{/* Hidden file input */}

@@ -211,6 +211,7 @@ export function useMessages(
 	const send = useCallback(
 		async (content: ContentBlock[]) => {
 			if (!agentId || !sessionId) return;
+			setError(null);
 
 			const userMsg = UserMsg({ name: 'user', content });
 			msgsRef.current = [...msgsRef.current, userMsg];
@@ -228,6 +229,30 @@ export function useMessages(
 		},
 		[agentId, sessionId, scheduleUpdate],
 	);
+
+	/**
+	 * Re-trigger the most recent user message without appending a
+	 * duplicate bubble (the original is already in the list; the backend
+	 * upserts by message id). Used by the error card's retry button.
+	 */
+	const resendLastUserMessage = useCallback(async () => {
+		if (!agentId || !sessionId) return;
+		const lastUser = [...msgsRef.current].reverse().find((m) => m.role === 'user');
+		if (!lastUser) return;
+		setError(null);
+		try {
+			await chatApi.trigger({
+				agent_id: agentId,
+				session_id: sessionId,
+				input: lastUser,
+			});
+		} catch (e) {
+			setError(e as Error);
+		}
+	}, [agentId, sessionId]);
+
+	/** Dismiss the current error (error card's close button). */
+	const clearError = useCallback(() => setError(null), []);
 
 	/**
 	 * Confirm or deny a tool call (human-in-the-loop). Fires a
@@ -280,5 +305,5 @@ export function useMessages(
 		abortRef.current?.abort();
 	}, []);
 
-	return { msgs, loading, streaming, error, send, onUserConfirm, abort };
+	return { msgs, loading, streaming, error, send, onUserConfirm, abort, resendLastUserMessage, clearError };
 }
