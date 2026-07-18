@@ -140,4 +140,33 @@ const text = (txt) => ({ type: 'text', text: txt });
 	);
 }
 
+// ── 8. 回归：结果已终结时，调用侧遗留的 pending/allowed/submitted
+//        不得再判为 running（库的 appendEvent 在 TOOL_CALL_END 时
+//        不更新 call.state，否则会「工具完成后一直转圈」） ──────────────
+{
+	for (const stale of ['pending', 'allowed', 'submitted']) {
+		assert.equal(
+			isGroupRunning([{ call: call('c1', 'Bash', stale), result: result('c1') }]),
+			false,
+			`stale call state ${stale} + success result must not be running`,
+		);
+		assert.equal(
+			groupStatus([{ call: call('c1', 'Bash', stale), result: result('c1') }]),
+			'success',
+		);
+		// 结果失败时也以结果为准
+		assert.equal(
+			groupStatus([
+				{ call: call('c1', 'Bash', stale), result: result('c1', 'Bash', 'error') },
+			]),
+			'error',
+		);
+	}
+	// asking 仍以调用侧为准（等待用户授权，阻塞流水线）
+	assert.equal(
+		groupStatus([{ call: call('c1', 'Bash', 'asking') }]),
+		'running',
+	);
+}
+
 console.log('test-toolGroup: all assertions passed');

@@ -107,14 +107,9 @@ export function groupToolCalls(content: ContentBlock[]): ExtendedContentBlock[] 
 
 /** True while any call in the group is still awaiting its result. */
 export function isGroupRunning(calls: ToolCallWithResult[]): boolean {
-	return calls.some(
-		({ call, result }) =>
-			!result ||
-			result.state === 'running' ||
-			call.state === 'pending' ||
-			call.state === 'allowed' ||
-			call.state === 'submitted',
-	);
+	// 与 callStatus 同理：只以结果状态为准，调用侧的
+	// pending/allowed/submitted 在 TOOL_CALL_END 后不会被库更新。
+	return calls.some(({ result }) => !result || result.state === 'running');
 }
 
 /**

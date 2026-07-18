@@ -109,6 +109,14 @@ export function ProjectDialog({ open, onOpenChange, project, agents, onConfirm }
 							rows={3}
 						/>
 					</Field>
+					{/* 单个 agent 时显示只读字段（明确告知项目绑定的智能体），
+					    多个时才显示可切换的下拉菜单 */}
+					{agents.length === 1 && (
+						<Field>
+							<FieldLabel>{t('dialog-project.agentLabel')}</FieldLabel>
+							<Input value={agents[0].data.name} disabled readOnly />
+						</Field>
+					)}
 					{agents.length > 1 && (
 						<Field>
 							<FieldLabel>{t('dialog-project.agentLabel')}</FieldLabel>

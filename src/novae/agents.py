@@ -29,8 +29,17 @@ CODING_TOOLS = [
 # Legacy built-in agent ids retired by the bioinformatics rebrand and the
 # later single-agent consolidation. They are deleted (with their
 # sessions/schedules) before each seeding run so users only ever see the
-# current expert.
-LEGACY_AGENT_IDS = ("scrna", "rnaseq", "bioflow", "novae", "novae_optimizer", "flow")
+# current expert. 注意连字符/下划线两种历史命名都要覆盖。
+LEGACY_AGENT_IDS = (
+    "scrna",
+    "rnaseq",
+    "bioflow",
+    "novae",
+    "novae_optimizer",
+    "novae-optimizer",
+    "novae-coder",
+    "flow",
+)
 
 _OUTPUT_CONVENTIONS = """
 工作规范：

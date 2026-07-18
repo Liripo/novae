@@ -26,7 +26,16 @@ def test_builtin_agents_only_bio(client, admin_headers):
     r = client.get("/agent/", headers=admin_headers)
     assert r.status_code == 200, r.text
     agents = {a["id"]: a["data"]["name"] for a in r.json()["agents"]}
-    for legacy in ("scrna", "rnaseq", "bioflow", "novae", "novae_optimizer", "flow"):
+    for legacy in (
+        "scrna",
+        "rnaseq",
+        "bioflow",
+        "novae",
+        "novae_optimizer",
+        "novae-optimizer",
+        "novae-coder",
+        "flow",
+    ):
         assert legacy not in agents, agents
     assert agents == {"bio": "生信分析专家"}, agents
 

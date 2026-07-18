@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shutil
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -21,6 +22,8 @@ from agentscope.app.deps import get_session_service
 from agentscope.app.message_bus import RedisMessageBus
 from agentscope.app.storage import RedisStorage
 from agentscope.credential import OpenAICredential
+from agentscope.event import CustomEvent
+from loguru import logger
 from pydantic import SecretStr
 
 from novae.accounts import (
@@ -40,6 +43,33 @@ from novae.workspace import ProjectWorkspaceManager
 # Retune chat-model retries (429-friendly) before any chat run builds a
 # model. Idempotent — safe under module re-imports.
 apply_model_retry_patch()
+
+
+def _force_proactor_event_loop_on_windows() -> None:
+    """Windows 下强制 uvicorn 使用 ProactorEventLoop。
+
+    `fastapi dev`（reload/worker 模式）会让 uvicorn 以 SelectorEventLoop
+    运行服务进程，导致 asyncio.create_subprocess_shell 抛出
+    **空消息** 的 NotImplementedError——Bash 工具全部失败，且聊天界面
+    只能看到「Error:」后面没有内容。uvicorn 在 Server.run 时才经
+    import_from_string 解析 loop factory（晚于本模块导入），因此在此
+    替换工厂即可生效；非 Windows 或未安装 uvicorn 时静默跳过。
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import asyncio
+
+        from uvicorn.loops import asyncio as _uvicorn_asyncio_loops
+
+        _uvicorn_asyncio_loops.asyncio_loop_factory = (
+            lambda use_subprocess=False: asyncio.ProactorEventLoop
+        )
+    except Exception:
+        pass
+
+
+_force_proactor_event_loop_on_windows()
 
 cfg = get_config()
 
@@ -281,10 +311,50 @@ def _scan_project_tree(workdir: Path) -> list[dict]:
     return scan(workdir, "", 1)
 
 
+def _wrap_chat_service_error_events(app: FastAPI) -> None:
+    """包装 ChatService._run_impl：运行失败（如模型 429 限流）时向会话
+    事件流发布 run_error 自定义事件——原实现只在后端记日志并吞掉异常，
+    前端收不到任何终止信号，会一直停在「思考中」。事件到达后前端展示
+    错误卡片并收尾运行状态。原异常继续抛出，由 ChatService.run 记日志。
+
+    注意：chat_service 在 AgentScope lifespan 启动时才创建，因此本函数
+    必须在 novae_lifespan 内调用，不能在 create_fastapi_app 阶段调用。
+    """
+    chat_service = app.state.chat_service
+    original_run_impl = chat_service._run_impl
+
+    async def _run_impl_with_error_event(
+        user_id: str,
+        session_id: str,
+        agent_id: str,
+        input_msg=None,
+    ) -> None:
+        try:
+            await original_run_impl(user_id, session_id, agent_id, input_msg)
+        except Exception as exc:
+            try:
+                await chat_service._message_bus.session_publish_event(
+                    session_id,
+                    CustomEvent(
+                        name="run_error",
+                        value={
+                            "error_type": type(exc).__name__,
+                            "message": str(exc),
+                        },
+                    ).model_dump(mode="json"),
+                )
+            except Exception:
+                logger.exception("发布 run_error 事件失败")
+            raise
+
+    chat_service._run_impl = _run_impl_with_error_event
+
+
 @asynccontextmanager
 async def novae_lifespan(app: FastAPI):
     """Extend the AgentScope lifespan to seed built-in users and agent."""
     async with _agentscope_lifespan(app):
+        _wrap_chat_service_error_events(app)
         redis = AsyncRedis(
             host=cfg.redis_host,
             port=cfg.redis_port,

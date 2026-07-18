@@ -480,6 +480,13 @@ export function MessageBubble({ message, onUserConfirm }: MessageBubbleProps) {
 		toast.success(t('messageBubble.copied'));
 	};
 
+	// 状态行显示条件：运行中但正文仍为空时不显示（等待由消息列表底部的
+	// ThinkingIndicator 统一指示，避免同一时刻出现两个转圈）；完成后
+	// 有正文或音频时才需要 hover 操作栏。
+	const showStatusRow = isRunning
+		? hasBodyContent
+		: hasBodyContent || audioBlocks.length > 0;
+
 	return (
 		<div className="group flex w-full max-w-full flex-col" title={new Date(message.created_at).toLocaleString()}>
 			{hasBodyContent &&
@@ -512,7 +519,7 @@ export function MessageBubble({ message, onUserConfirm }: MessageBubbleProps) {
 						)}
 					</div>
 				))}
-			{!isUser && (
+			{!isUser && showStatusRow && (
 				<div
 					className={cn(
 						'flex flex-row items-center gap-x-3 px-1 pt-0.5 text-muted-foreground transition-opacity',

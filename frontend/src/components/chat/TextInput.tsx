@@ -339,7 +339,8 @@ export const TextInput = forwardRef<TextInputRef, TextInputProps>(
 								</TooltipContent>
 							</Tooltip>
 
-							{/* Send button */}
+							{/* Send button —— 忙碌时仅禁用，不再显示第二个转圈
+							    （运行状态由消息内的计时徽标统一指示） */}
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
@@ -349,11 +350,7 @@ export const TextInput = forwardRef<TextInputRef, TextInputProps>(
 										size="icon"
 										className="shrink-0 rounded-full"
 									>
-										{busy ? (
-											<Loader2 className="h-4 w-4 animate-spin" />
-										) : (
-											<Send className="h-4 w-4" />
-										)}
+										<Send className="h-4 w-4" />
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>

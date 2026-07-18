@@ -104,6 +104,30 @@ export function useMessages(
 					optionsRef.current?.onTeamUpdated?.();
 				} else if (custom.name === 'state_updated' && custom.value) {
 					optionsRef.current?.onStateUpdated?.(custom.value as Record<string, unknown>);
+				} else if (custom.name === 'run_error') {
+					// 后端运行失败（如模型 429 限流）：后端不会再发 REPLY_END，
+					// 在此展示错误卡片并收尾运行状态；完全没有内容的空回复
+					// 直接移除，错误卡片已足以说明问题。
+					const value = (custom.value ?? {}) as {
+						error_type?: string;
+						message?: string;
+					};
+					const detail = [value.error_type, value.message]
+						.filter(Boolean)
+						.join(': ');
+					setError(new Error(detail || 'Agent run failed'));
+					const reply = currentReplyRef.current;
+					if (reply) {
+						if (reply.content.length === 0) {
+							msgsRef.current = msgsRef.current.filter((m) => m.id !== reply.id);
+						} else if (!reply.finished_at) {
+							reply.finished_at = new Date().toISOString();
+						}
+					}
+					currentReplyRef.current = null;
+					setStreaming(false);
+					setAwaitingReply(false);
+					scheduleUpdate();
 				}
 				return;
 			}

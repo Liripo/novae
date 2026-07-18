@@ -60,9 +60,7 @@ function groupToolCalls(content) {
   return result;
 }
 function isGroupRunning(calls) {
-  return calls.some(
-    ({ call, result }) => !result || result.state === "running" || call.state === "pending" || call.state === "allowed" || call.state === "submitted"
-  );
+  return calls.some(({ result }) => !result || result.state === "running");
 }
 function groupStatus(calls) {
   if (isGroupRunning(calls) || calls.some(({ call }) => call.state === "asking")) {

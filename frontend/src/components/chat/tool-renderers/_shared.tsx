@@ -13,15 +13,10 @@ export type ToolRowStatus = 'running' | 'asking' | 'error' | 'interrupted' | 'su
 /** Derive the row status from a call + its (optional) result. */
 export function callStatus({ call, result }: ToolCallWithResult): ToolRowStatus {
 	if (call.state === 'asking') return 'asking';
-	if (
-		!result ||
-		result.state === 'running' ||
-		call.state === 'pending' ||
-		call.state === 'allowed' ||
-		call.state === 'submitted'
-	) {
-		return 'running';
-	}
+	// 状态判定以结果为准：库的 appendEvent 在 TOOL_CALL_END 时不更新
+	// call.state（永远是 'pending'，授权执行后是 'allowed'），若再看
+	// 调用侧状态，工具完成后会永远停在 running（一直转圈）。
+	if (!result || result.state === 'running') return 'running';
 	if (result.state === 'error' || result.state === 'denied') return 'error';
 	if (result.state === 'interrupted') return 'interrupted';
 	return 'success';
