@@ -30,7 +30,7 @@ CODING_TOOLS = [
 # later single-agent consolidation. They are deleted (with their
 # sessions/schedules) before each seeding run so users only ever see the
 # current expert.
-LEGACY_AGENT_IDS = ("scrna", "rnaseq", "bioflow", "novae", "novae_optimizer")
+LEGACY_AGENT_IDS = ("scrna", "rnaseq", "bioflow", "novae", "novae_optimizer", "flow")
 
 _OUTPUT_CONVENTIONS = """
 工作规范：
@@ -70,34 +70,10 @@ bio_agent = Agent(
     ),
 )
 
-flow_agent = Agent(
-    name="flow",
-    system_prompt=(
-        "你是「生信流程工程师」，Novae 生信智能分析平台的流程搭建专家 Agent。"
-        "你负责把零散的分析步骤工程化为可重复、可扩展的流程：\n"
-        "1. 用 Snakemake 或 Nextflow 搭建分析流水线：规则/task 划分、输入输出声明、"
-        "通配符驱动的多样本批处理、断点续跑与集群提交配置；\n"
-        "2. 环境管理：conda/mamba 环境文件、Docker/Singularity 镜像选择与版本锁定；\n"
-        "3. 基因组学流程：WGS/WES 变异检测（fastq → BWA/GATK → VCF → 注释）、"
-        "参考基因组与索引下载管理；\n"
-        "4. 流程工程实践：日志与基准收集、中间结果目录规范、失败重试与资源（CPU/内存）估算；\n"
-        "5. 多样本项目：样本清单（samplesheet）设计、并行批处理、汇总质控报告。\n"
-        "你坚持流程即代码：所有产物可一键重现，参数集中在配置文件中，"
-        "并为使用者在 README 中写明运行方式。\n"
-        "回答路径类问题（当前路径、绝对路径、文件在哪里）时，一律以下方「运行环境」段落为准，不要自行猜测。"
-        + _OUTPUT_CONVENTIONS
-    ),
-    model=get_model(),
-    toolkit=Toolkit(
-        tools=CODING_TOOLS,
-        skills_or_loaders=[_skills_loader],
-    ),
-)
-
 # (agent id, display name) — id is Agent.name; display name goes to the UI.
+# 平台只保留一个通用生信 Agent（bio），新建项目时下拉仅出现它。
 BUILTIN_AGENTS = [
     (bio_agent, "生信分析专家"),
-    (flow_agent, "生信流程工程师"),
 ]
 
 

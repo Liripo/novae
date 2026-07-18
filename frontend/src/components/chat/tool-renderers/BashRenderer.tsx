@@ -1,10 +1,5 @@
-import {
-	defaultGetDisplayName,
-	defaultRenderCallArgs,
-	defaultRenderGroup,
-	defaultRenderResult,
-} from './DefaultRenderer';
-import type { ToolRenderer } from './types';
+import { capLines, resultToText } from './_shared';
+import type { ToolRenderer, ToolSection } from './types';
 
 function parseInput(input: string): Record<string, unknown> {
 	try {
@@ -22,14 +17,24 @@ export const BashRenderer: ToolRenderer = {
 		return command || call.input;
 	},
 
-	renderResult: (call, result, t) => {
-		if (call.state === 'asking' || !result || result.state === 'running') {
-			return t('common.running');
-		}
+	renderSections: (call, result, t) => {
+		const { command } = parseInput(call.input) as { command?: string };
+		const sections: ToolSection[] = [
+			{ label: t('tool.sections.command'), body: command || call.input },
+		];
+		if (!result || result.state === 'running') return sections;
 		if (result.state === 'interrupted') {
-			return t('common.interrupted');
+			return [...sections, { label: t('tool.sections.output'), body: t('common.interrupted') }];
 		}
-		return undefined;
+		const output = resultToText(result);
+		if (output.trim()) {
+			sections.push({
+				label: t('tool.sections.output'),
+				body: capLines(output, t),
+				error: result.state === 'error' || result.state === 'denied',
+			});
+		}
+		return sections;
 	},
 
 	renderConfirmBody: (call) => {
@@ -44,15 +49,4 @@ export const BashRenderer: ToolRenderer = {
 			</div>
 		);
 	},
-
-	renderGroup: (calls, t) =>
-		defaultRenderGroup(calls, t, {
-			getDisplayName: (call) =>
-				BashRenderer.getDisplayName?.(call, t) ?? defaultGetDisplayName(call),
-			renderCallArgs: (call) =>
-				BashRenderer.renderCallArgs?.(call, t) ?? defaultRenderCallArgs(call),
-			renderResult: (call, result) =>
-				BashRenderer.renderResult?.(call, result, t) ??
-				defaultRenderResult(call, result, t),
-		}),
 };

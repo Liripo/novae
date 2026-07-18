@@ -2,6 +2,7 @@ import {
 	BotMessageSquare,
 	CalendarClock,
 	ChevronRight,
+	Compass,
 	Ellipsis,
 	Folder,
 	FolderOpen,
@@ -14,6 +15,7 @@ import {
 	Settings,
 	Trash2,
 } from 'lucide-react';
+import { useOnborda } from 'onborda';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -28,6 +30,7 @@ import { RenameSessionDialog } from '@/components/dialog/RenameSessionDialog';
 import { useSettingsDialog } from '@/components/dialog/SettingsDialog';
 import { TeamSidebar } from '@/components/team/TeamSidebar';
 import { ChatTourController } from '@/components/tour/ChatTourController';
+import { CHAT_TOUR_NAME } from '@/components/tour/chatTourSteps';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -135,6 +138,8 @@ const ChatPageInner = () => {
 	const hasScheduleSessions = allSessions.some((v) => v.session.source === 'schedule');
 	const username = getStoredUser();
 	const { openSettings } = useSettingsDialog();
+	// 新手引导触发器（原在最左图标栏，现并入用户卡片菜单）
+	const { startOnborda } = useOnborda();
 
 	// Group every session by its owning project (workspace_id match);
 	// sessions that belong to no known project fall into "其他会话".
@@ -349,6 +354,13 @@ const ChatPageInner = () => {
 					>
 						{renderSessionIcon(view)}
 						<span className="truncate">{session.config.name || session.id}</span>
+						{/* 运行中的会话显示脉冲状态点（参考 hermes 桌面版） */}
+						{view.is_running && (
+							<span className="ml-auto relative flex size-2 shrink-0">
+								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+								<span className="relative inline-flex size-2 rounded-full bg-primary" />
+							</span>
+						)}
 					</SidebarMenuSubButton>
 					{renderSessionActions(session)}
 				</div>
@@ -359,11 +371,9 @@ const ChatPageInner = () => {
 	return (
 		<div className="flex h-full w-full">
 			{/*
-			 * Desktop stays `collapsible="none"` so the project tree sits in
-			 * normal flow beside the app rail (AppSidebar). Mobile switches to
-			 * `offcanvas`, which makes shadcn's Sidebar render its Sheet overlay
-			 * (the drawer we want) — instead of the desktop `fixed left-0`
-			 * container, which would otherwise cover the app rail.
+			 * 桌面端保持 `collapsible="none"`，项目树常驻在页面左侧；
+			 * 移动端切换为 `offcanvas`，shadcn 的 Sidebar 会渲染 Sheet 抽屉，
+			 * 避免桌面端 `fixed left-0` 容器遮挡内容。
 			 */}
 			<Sidebar collapsible={isMobile ? 'offcanvas' : 'none'} className="border-r">
 				<SidebarHeader>
@@ -582,7 +592,15 @@ const ChatPageInner = () => {
 								<Settings />
 								{t('common.settings')}
 							</DropdownMenuItem>
-							<DropdownMenuItem variant="destructive" onClick={logout}>
+							<DropdownMenuItem onClick={() => navigate('/schedule')}>
+									<CalendarClock />
+									{t('common.schedule')}
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => startOnborda(CHAT_TOUR_NAME)}>
+									<Compass />
+									{t('tour.trigger')}
+								</DropdownMenuItem>
+								<DropdownMenuItem variant="destructive" onClick={logout}>
 								<LogOut />
 								{t('account.logout')}
 							</DropdownMenuItem>
@@ -660,7 +678,9 @@ const ChatPageInner = () => {
 
 export const ChatPage = () => (
 	<AudioProvider>
-		<SidebarProvider defaultOpen>
+		{/* h-full min-h-0：让聊天页高度链在 AppLayout 的定高容器内闭合，
+		    消息列表内部滚动，输入框与侧栏底栏固定在可视区内 */}
+		<SidebarProvider defaultOpen className="h-full min-h-0">
 			<ChatPageInner />
 		</SidebarProvider>
 	</AudioProvider>

@@ -1,5 +1,4 @@
 import type {
-	ContentBlock,
 	DataBlock,
 	Msg,
 	TextBlock,
@@ -9,9 +8,10 @@ import {
 	ArrowDown,
 	ArrowUp,
 	Bot,
+	Brain,
 	CalendarClock,
-	CheckCircle,
-	ChevronDownIcon,
+	Check,
+	ChevronRight,
 	CirclePlay,
 	Copy,
 	Loader2,
@@ -21,11 +21,13 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { toast } from 'sonner';
 
 import { ConfirmCard } from './ConfirmCard';
 import { FileAttachment } from './FileAttachment';
-import { renderToolGroup } from './tool-renderers';
-import type { TFunction, ToolCallWithResult } from './tool-renderers/types';
+import { ToolCallGroupView } from './tool-renderers/ToolRows';
+import { groupToolCalls, type ExtendedContentBlock } from './tool-renderers/groupToolCalls';
+import type { TFunction } from './tool-renderers/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,116 +38,8 @@ import {
 import { Item, ItemContent } from '@/components/ui/item.tsx';
 import { useAudioBlock, useReplayController } from '@/context/AudioContext';
 import { useTranslation } from '@/i18n/useI18n';
+import { cn } from '@/lib/utils';
 import { formatNumber, formatTime } from '@/utils/common';
-
-interface ToolCallGroupBlock {
-	type: 'tool_call_group';
-	id: string;
-	toolName: string;
-	calls: ToolCallWithResult[];
-}
-
-type ExtendedContentBlock = ContentBlock | ToolCallGroupBlock;
-
-/**
- * Group tool_call blocks of the same name into a single
- * `tool_call_group`, with each call paired to its matching
- * tool_result by id.
- *
- * Unlike the previous implementation this does NOT require calls of
- * the same name to be consecutive. When the agent issues multiple
- * concurrent tool calls (e.g. Glob + Grep), the content layout is
- * `[call_Glob, call_Grep, result_Glob, result_Grep]` — the old
- * "consecutive-same-name" approach would split call and result into
- * separate groups. This version collects all calls first (preserving
- * encounter order), then matches results, and finally emits groups
- * in the order the first call of each tool name appeared,
- * interleaved with non-tool blocks at their original positions.
- */
-function groupToolCalls(content: ContentBlock[]): ExtendedContentBlock[] {
-	// Pass 1: pair calls ↔ results by id, track non-tool blocks.
-	const callMap = new Map<string, ToolCallWithResult>();
-	const resultMap = new Map<string, ContentBlock>();
-	const ordering: Array<{ type: 'tool'; id: string } | { type: 'other'; block: ContentBlock }> =
-		[];
-
-	for (const block of content) {
-		if (block.type === 'tool_call') {
-			const entry: ToolCallWithResult = { call: block };
-			callMap.set(block.id, entry);
-			ordering.push({ type: 'tool', id: block.id });
-		} else if (block.type === 'tool_result') {
-			const matching = callMap.get(block.id);
-			if (matching) {
-				matching.result = block;
-			} else {
-				resultMap.set(block.id, block);
-			}
-		} else {
-			ordering.push({ type: 'other', block });
-		}
-	}
-
-	// Pass 2: walk the ordering, group consecutive same-name calls
-	// (now that results are already attached).
-	const result: ExtendedContentBlock[] = [];
-	let currentGroup: ToolCallWithResult[] = [];
-	let currentToolName: string | null = null;
-
-	const flush = () => {
-		if (currentGroup.length > 0 && currentToolName) {
-			result.push({
-				type: 'tool_call_group',
-				id: crypto.randomUUID(),
-				toolName: currentToolName,
-				calls: currentGroup,
-			});
-			currentGroup = [];
-			currentToolName = null;
-		}
-	};
-
-	for (const item of ordering) {
-		if (item.type === 'other') {
-			flush();
-			result.push(item.block);
-		} else {
-			const entry = callMap.get(item.id);
-			if (!entry) continue;
-			if (currentToolName !== null && currentToolName !== entry.call.name) {
-				flush();
-			}
-			currentToolName = entry.call.name;
-			currentGroup.push(entry);
-		}
-	}
-	flush();
-
-	// Orphan results (no matching call) — render as synthetic groups.
-	for (const [id, block] of resultMap) {
-		if (block.type === 'tool_result') {
-			result.push({
-				type: 'tool_call_group',
-				id: crypto.randomUUID(),
-				toolName: block.name,
-				calls: [
-					{
-						call: {
-							type: 'tool_call',
-							id,
-							name: block.name,
-							input: '',
-							state: 'finished' as const,
-						},
-						result: block,
-					},
-				],
-			});
-		}
-	}
-
-	return result;
-}
 
 const AUDIO_WAVE_LINES: Array<{ x: number; y1: number; y2: number }> = [
 	{ x: 2, y1: 10, y2: 13 },
@@ -200,9 +94,8 @@ function AudioWave({ isPlaying = true, className }: { isPlaying?: boolean; class
 }
 
 /**
- * Inline audio control rendered *inside* the time/usage Badge so the play
- * icon visually merges into the same chip rather than floating as its own
- * pill.
+ * 内嵌在底部状态行的音频控件，与耗时/用量共用同一个 Badge，
+ * 不再单独浮动。
  */
 function AudioInlineControl({ block }: { block: DataBlock }) {
 	const { t } = useTranslation();
@@ -213,10 +106,8 @@ function AudioInlineControl({ block }: { block: DataBlock }) {
 
 	const isStreaming = audioState?.status === 'streaming';
 
-	// Don't build the giant base64 data URL while bytes are still streaming —
-	// it would re-allocate on every DATA_BLOCK_DELTA. Live playback during
-	// that window is handled by the manager's WavStreamPlayer; we only need
-	// `src` for replay after the stream ends (or for historical messages).
+	// 流式传输中不拼接大段 base64 URL（每次增量都会重新分配）；
+	// 只有流结束后（或历史消息）才需要 src 用于回听。
 	let src: string | null = null;
 	if (!isStreaming) {
 		if (audioState?.url) {
@@ -228,9 +119,7 @@ function AudioInlineControl({ block }: { block: DataBlock }) {
 		}
 	}
 
-	// Reset the hidden <audio> when the source URL changes (e.g. streaming
-	// just transitioned to a Blob URL). Without an explicit load() some
-	// browsers keep the previous (or empty) source bound to the element.
+	// 源 URL 变化时重置隐藏的 <audio>，否则部分浏览器会保留旧源。
 	useEffect(() => {
 		const el = audioRef.current;
 		if (!el || !src) return;
@@ -238,7 +127,7 @@ function AudioInlineControl({ block }: { block: DataBlock }) {
 		el.load();
 	}, [src]);
 
-	// Pause when a newer reply interrupts this block's playback.
+	// 有更新的回复打断时暂停本块的播放。
 	const interruptCount = audioState?.interruptCount ?? 0;
 	useEffect(() => {
 		if (interruptCount === 0) return;
@@ -299,15 +188,69 @@ function AudioInlineControl({ block }: { block: DataBlock }) {
 }
 
 /**
- * Render a single content block. Tool call groups are dispatched to
- * `renderToolGroup`; the per-group truncation at the first `asking` call
- * (and the trailing ConfirmCard) lives here so renderers only see a clean
- * list of calls.
+ * 思考区块（hermes 风格）：流式生成时自动展开一个限高预览窗
+ * （顶部渐变遮罩、内容自动跟随），标题带 shimmer 微光；
+ * 生成结束后自动折叠。用户手动展开/折叠后不再自动变更。
+ */
+function ThinkingBlock({ thinking, streaming }: { thinking: string; streaming: boolean }) {
+	const { t } = useTranslation();
+	const [open, setOpen] = useState(streaming);
+	const userToggled = useRef(false);
+	const previewRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!userToggled.current) setOpen(streaming);
+	}, [streaming]);
+
+	// 流式期间预览窗始终滚到底部
+	useEffect(() => {
+		const el = previewRef.current;
+		if (open && streaming && el) el.scrollTop = el.scrollHeight;
+	}, [thinking, open, streaming]);
+
+	return (
+		<div className="text-muted-foreground">
+			<button
+				type="button"
+				className="flex items-center gap-x-1.5 rounded px-1 py-0.5 text-[0.75rem] transition-colors hover:bg-muted/50"
+				onClick={() => {
+					userToggled.current = true;
+					setOpen((v) => !v);
+				}}
+			>
+				<Brain className="size-3.5" />
+				<span className={cn('font-medium', streaming && 'shimmer-text')}>
+					{t('messageBubble.thinking')}
+				</span>
+				<ChevronRight
+					className={cn('size-3 text-muted-foreground/50 transition-transform', open && 'rotate-90')}
+				/>
+			</button>
+			{open && (
+				<div className="relative ml-2 mt-1">
+					<div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-background to-transparent" />
+					<div
+						ref={previewRef}
+						className="max-h-40 overflow-auto whitespace-pre-wrap break-all text-[0.75rem] leading-relaxed"
+					>
+						{thinking}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
+/**
+ * 渲染单个内容块。工具调用分组交给 ToolCallGroupView；
+ * 首个 asking 调用的截断与 ConfirmCard 挂载在此处理，
+ * 渲染器只看到干净的调用列表。
  */
 function renderBlock(
 	block: ExtendedContentBlock,
 	index: number,
 	t: TFunction,
+	isRunning: boolean,
 	onUserConfirm?: (
 		toolCallBlock: ToolCallBlock,
 		confirm: boolean,
@@ -320,8 +263,8 @@ function renderBlock(
 			const visible = firstAsk === -1 ? block.calls : block.calls.slice(0, firstAsk + 1);
 			const askingCall = firstAsk === -1 ? null : block.calls[firstAsk].call;
 			return (
-				<div key={index} className="flex flex-col gap-y-4 text-muted-foreground">
-					{renderToolGroup(block.toolName, visible, t)}
+				<div key={index} className="flex flex-col gap-y-1">
+					<ToolCallGroupView calls={visible} t={t} />
 					{askingCall && (
 						<ConfirmCard
 							toolCall={askingCall}
@@ -335,7 +278,7 @@ function renderBlock(
 		}
 		case 'text':
 			return (
-				<div key={index} className="prose w-full min-w-full">
+				<div key={index} className="prose w-full min-w-full text-[0.8125rem]">
 					<ReactMarkdown
 						remarkPlugins={[remarkGfm]}
 						components={{
@@ -357,9 +300,7 @@ function renderBlock(
 											onClick={async (e) => {
 												e.preventDefault();
 												e.stopPropagation();
-												await navigator.clipboard.writeText(
-													String(children),
-												);
+												await navigator.clipboard.writeText(String(children));
 											}}
 										>
 											<Copy />
@@ -380,19 +321,11 @@ function renderBlock(
 			);
 
 		case 'thinking':
-			return (
-				<details key={index} className="text-muted-foreground">
-					<summary className="cursor-pointer select-none">
-						{t('messageBubble.thinking')}
-					</summary>
-					<p className="mt-1 whitespace-pre-wrap">{block.thinking}</p>
-				</details>
-			);
+			return <ThinkingBlock key={index} thinking={block.thinking} streaming={isRunning} />;
 
 		case 'data': {
 			const dataType = block.source.media_type.split('/')[0];
-			// Audio data blocks render in the footer (see AudioFooterControl),
-			// not inline alongside text.
+			// 音频块在底部状态行渲染（见 AudioInlineControl），不在正文内联
 			if (dataType === 'audio') return null;
 			const data =
 				block.source.type === 'url'
@@ -430,7 +363,7 @@ function renderBlock(
 		}
 
 		case 'hint': {
-			// Parse source: try JSON, fall back to plain string, default to t('common.message').
+			// 解析来源：优先 JSON，退化纯字符串，默认 t('common.message')
 			let hintLabel: string;
 			let hintSublabel: string | null = null;
 			let HintIcon = MessageSquareQuote;
@@ -471,11 +404,11 @@ function renderBlock(
 											{hintSublabel}
 										</span>
 									)}
-									<ChevronDownIcon className="ml-auto group-data-[state=open]:rotate-180" />
+									<ChevronRight className="ml-auto group-data-[state=open]:rotate-90" />
 								</Button>
 							</CollapsibleTrigger>
 							<CollapsibleContent className="p-2.5 pt-0 max-w-full overflow-hidden break-all text-muted-foreground">
-								{items.map((inner, i) => renderBlock(inner, i, t))}
+								{items.map((inner, i) => renderBlock(inner, i, t, isRunning))}
 							</CollapsibleContent>
 						</Collapsible>
 					</ItemContent>
@@ -499,21 +432,11 @@ interface MessageBubbleProps {
 }
 
 /**
- * A message bubble component that displays a chat message.
- *
- * Running state is derived from `message.finished_at`: a missing or null
- * `finished_at` means the agent is still producing this reply. The bottom
- * status row shows a single left-aligned badge laid out as
- * `[state-icon] [duration] [↑in ↓out]`:
- *   - State icon: spinning `Loader2` while running, static `CheckCircle`
- *     once finished.
- *   - Duration is `now - created_at` while running (ticking each second),
- *     `finished_at - created_at` once complete.
- *   - Token counts only appear once `usage` is populated with non-zero
- *     values — typically after the message finishes.
- *
- * When `content` is empty and the message is still running, the bubble
- * body is omitted entirely so only the bottom status row renders.
+ * 消息气泡（hermes 风格）：
+ * - 用户消息 = 整行宽的卡片（非窄气泡右对齐）；
+ * - 助手消息 = 无气泡正文，直接排版在背景上；
+ * - 运行状态由 finished_at 推断：运行中显示 spinner + 秒级计时徽标；
+ *   完成后底部操作栏默认隐藏，hover 浮现（复制 / 耗时 / token 用量 / 音频）。
  */
 export function MessageBubble({ message, onUserConfirm }: MessageBubbleProps) {
 	const isUser = message.role === 'user';
@@ -524,7 +447,7 @@ export function MessageBubble({ message, onUserConfirm }: MessageBubbleProps) {
 		!!message.usage &&
 		((message.usage.input_tokens ?? 0) > 0 || (message.usage.output_tokens ?? 0) > 0);
 
-	// Tick once per second while running so the elapsed time updates live.
+	// 运行中每秒刷新一次，让耗时实时走动
 	const [now, setNow] = useState(() => Date.now());
 	useEffect(() => {
 		if (!isRunning) return;
@@ -536,75 +459,100 @@ export function MessageBubble({ message, onUserConfirm }: MessageBubbleProps) {
 	const audioBlocks = message.content.filter(
 		(b): b is DataBlock => b.type === 'data' && b.source.media_type.split('/')[0] === 'audio',
 	);
-	// Audio data blocks are rendered in the footer, so they shouldn't keep an
-	// otherwise-empty body bubble alive.
+	// 音频块在底部渲染，不撑起正文容器
 	const hasBodyContent = blocks.some(
 		(b) => !(b.type === 'data' && b.source.media_type.split('/')[0] === 'audio'),
 	);
-	const showBody = hasBodyContent;
-	const showFooter = !isUser;
 
 	const startMs = new Date(message.created_at).getTime();
 	const endMs = isRunning ? now : new Date(message.finished_at!).getTime();
 	const elapsedSeconds = Math.max(0, (endMs - startMs) / 1000);
 	const elapsedText = formatTime(elapsedSeconds);
 
+	// 复制助手消息的全部文本内容
+	const handleCopy = async () => {
+		const text = message.content
+			.filter((b): b is TextBlock => b.type === 'text')
+			.map((b) => b.text)
+			.join('\n');
+		if (!text.trim()) return;
+		await navigator.clipboard.writeText(text);
+		toast.success(t('messageBubble.copied'));
+	};
+
 	return (
-		<div
-			className={`flex flex-col w-full max-w-full ${isUser ? 'items-end' : 'items-start'} mb-4`}
-			title={new Date(message.created_at).toLocaleString()}
-		>
-			{showBody && (
-				<div
-					className={`p-4 rounded-xl space-y-2 max-w-full ${
-						isUser ? 'w-fit bg-secondary' : 'w-full min-w-full'
-					}`}
-				>
-					{blocks.map((block, i) =>
-						renderBlock(
-							block,
-							i,
-							t,
-							(
+		<div className="group flex w-full max-w-full flex-col" title={new Date(message.created_at).toLocaleString()}>
+			{hasBodyContent &&
+				(isUser ? (
+					// 用户消息：整行宽的卡片
+					<div className="w-full max-w-full space-y-2 rounded-xl border bg-secondary/60 px-4 py-3">
+						{blocks.map((block, i) =>
+							renderBlock(block, i, t, isRunning, (
 								toolCall: ToolCallBlock,
 								confirm: boolean,
 								rules?: ToolCallBlock['suggested_rules'],
 							) => {
 								onUserConfirm(toolCall, confirm, message.id, rules);
 								toolCall.state = confirm ? 'allowed' : 'finished';
-							},
-						),
-					)}
-				</div>
-			)}
-			{showFooter && (
-				<div className="flex flex-row items-center text-muted-foreground gap-x-4 px-2 w-full">
-					<Badge
-						variant="secondary"
-						aria-label={isRunning ? t('messageBubble.running') : undefined}
-					>
-						{isRunning ? (
-							<Loader2 data-icon="inline-start" className="animate-spin" />
-						) : (
-							<CheckCircle data-icon="inline-start" />
+							}),
 						)}
-						<span className="tabular-nums tracking-tighter">{elapsedText}</span>
-						{hasUsage && (
-							<>
-								<ArrowUp data-icon="inline-start" className="ml-1" />
-								<span className="tabular-nums">
+					</div>
+				) : (
+					// 助手消息：无气泡，正文直接排版
+					<div className="w-full max-w-full space-y-2 px-1">
+						{blocks.map((block, i) =>
+							renderBlock(block, i, t, isRunning, (
+								toolCall: ToolCallBlock,
+								confirm: boolean,
+								rules?: ToolCallBlock['suggested_rules'],
+							) => {
+								onUserConfirm(toolCall, confirm, message.id, rules);
+								toolCall.state = confirm ? 'allowed' : 'finished';
+							}),
+						)}
+					</div>
+				))}
+			{!isUser && (
+				<div
+					className={cn(
+						'flex flex-row items-center gap-x-3 px-1 pt-0.5 text-muted-foreground transition-opacity',
+						isRunning ? '' : 'opacity-0 group-hover:opacity-100',
+					)}
+				>
+					{isRunning ? (
+						// 运行中：常驻 spinner + 计时徽标
+						<Badge variant="secondary" aria-label={t('messageBubble.running')}>
+							<Loader2 data-icon="inline-start" className="animate-spin" />
+							<span className="tabular-nums tracking-tighter">{elapsedText}</span>
+						</Badge>
+					) : (
+						// 完成后：hover 浮现的操作栏
+						<>
+							<button
+								type="button"
+								onClick={handleCopy}
+								aria-label={t('messageBubble.copy')}
+								className="inline-flex cursor-pointer items-center text-muted-foreground/70 transition-colors hover:text-foreground"
+							>
+								<Copy className="size-3.5" />
+							</button>
+							<span className="inline-flex items-center gap-x-1 text-[0.6875rem] text-muted-foreground/70">
+								<Check className="size-3" />
+								<span className="tabular-nums">{elapsedText}</span>
+							</span>
+							{hasUsage && (
+								<span className="inline-flex items-center gap-x-1 text-[0.6875rem] tabular-nums text-muted-foreground/70">
+									<ArrowUp className="size-3" />
 									{formatNumber(message.usage?.input_tokens ?? 0)}
-								</span>
-								<ArrowDown data-icon="inline-start" className="ml-1" />
-								<span className="tabular-nums">
+									<ArrowDown className="size-3" />
 									{formatNumber(message.usage?.output_tokens ?? 0)}
 								</span>
-							</>
-						)}
-						{audioBlocks.map((block) => (
-							<AudioInlineControl key={block.id} block={block} />
-						))}
-					</Badge>
+							)}
+						</>
+					)}
+					{audioBlocks.map((block) => (
+						<AudioInlineControl key={block.id} block={block} />
+					))}
 				</div>
 			)}
 		</div>

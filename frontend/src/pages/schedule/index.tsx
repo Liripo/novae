@@ -1,6 +1,7 @@
 import { CronExpressionParser } from 'cron-parser';
-import { Calendar, List, Plus } from 'lucide-react';
+import { ArrowLeft, Calendar, List, Plus } from 'lucide-react';
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import type { ScheduleEvent } from './event';
 import type { ScheduleRecord } from '@/api';
@@ -50,6 +51,7 @@ function expandScheduleToEvents(
 
 export function SchedulePage() {
 	const { t } = useTranslation();
+	const navigate = useNavigate();
 	const { schedules, remove, refetch } = useSchedules();
 	const [viewMode, setViewMode] = React.useState<'calendar' | 'list'>('calendar');
 	const [currentDate, setCurrentDate] = React.useState(new Date());
@@ -80,7 +82,18 @@ export function SchedulePage() {
 	return (
 		<div className="w-full h-full flex flex-col bg-sidebar overflow-hidden">
 			<div className="flex items-center justify-between p-4 flex-shrink-0">
-				<span className="text-2xl font-semibold">{t('common.schedule')}</span>
+				{/* 最左图标栏移除后，日程页提供返回聊天的入口 */}
+				<div className="flex items-center gap-2">
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						title={t('common.chat')}
+						onClick={() => navigate('/chat')}
+					>
+						<ArrowLeft />
+					</Button>
+					<span className="text-2xl font-semibold">{t('common.schedule')}</span>
+				</div>
 				<div className="flex items-center gap-2">
 					<Button size="icon-sm" onClick={() => setIsCreateOpen(true)}>
 						<Plus />

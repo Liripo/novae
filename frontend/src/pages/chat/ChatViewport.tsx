@@ -98,7 +98,7 @@ export function ChatViewport({ agentId, sessionId, onTeamUpdated }: ChatViewport
 		// TODO: handle permission_context updates when permission UI is built
 	}, []);
 
-	const { msgs, streaming, error, send, onUserConfirm, resendLastUserMessage, clearError } =
+	const { msgs, streaming, awaitingReply, error, send, onUserConfirm, resendLastUserMessage, clearError } =
 		useMessages(agentId, sessionId, {
 			onTeamUpdated: handleTeamUpdated,
 			onStateUpdated: handleStateUpdated,
@@ -198,11 +198,12 @@ export function ChatViewport({ agentId, sessionId, onTeamUpdated }: ChatViewport
 							/>
 						</div>
 					</div>
-					<div className="flex flex-1 justify-center min-h-0 overflow-hidden relative [--chat-content-w:36rem]">
+					<div className="flex flex-1 justify-center min-h-0 overflow-hidden relative [--chat-content-w:48rem]">
 						<ChatContent
 							className={'max-w-[var(--chat-content-w)] w-full'}
 							msgs={msgs}
 							sending={streaming}
+							awaitingReply={awaitingReply}
 							disabled={!sessionId}
 							onSend={send}
 							onUserConfirm={onUserConfirm}

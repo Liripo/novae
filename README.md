@@ -41,9 +41,10 @@ npm run dev
 ## 用户管理
 
 ```bash
-uv run python scripts/create_user.py <用户名> <密码> [user|admin]
 # 例：创建管理员
-uv run python scripts/create_user.py admin <strong-password> admin
+uv run python scripts/create_user.py admin <密码> admin
+# 创建用户
+uv run python scripts/create_user.py <用户名> <密码> [user|admin]
 ```
 
 用户记录保存在 Redis 的 `novae:user:<username>` 键下，密码以 PBKDF2-HMAC-SHA256 哈希存储。

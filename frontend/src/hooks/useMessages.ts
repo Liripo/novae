@@ -67,6 +67,11 @@ export function useMessages(
 	const [msgs, setMsgs] = useState<Msg[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [streaming, setStreaming] = useState(false);
+	// 已发送用户消息、正在等待回复的首个事件（REPLY_START）。
+	// 独立于 streaming：streaming 要等 REPLY_START 才置真，而这之前
+	// 模型调用可能耗时很久（如 429 重试），期间需要显示「正在思考」；
+	// 一旦报错或回复开始则立刻复位，避免「思考中」永远挂住。
+	const [awaitingReply, setAwaitingReply] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 
 	const msgsRef = useRef<Msg[]>([]);
@@ -108,6 +113,7 @@ export function useMessages(
 				const msg = AssistantMsg({ id: e.reply_id, name: e.name, content: [] });
 				msgsRef.current = [...msgsRef.current, msg];
 				currentReplyRef.current = msg;
+				setAwaitingReply(false);
 				setStreaming(true);
 			} else if (event.type === EventType.REPLY_END) {
 				if (currentReplyRef.current) {
@@ -154,6 +160,7 @@ export function useMessages(
 		setMsgs([]);
 		setError(null);
 		setStreaming(false);
+		setAwaitingReply(false);
 		audioManager?.disposeAll();
 
 		if (!agentId || !sessionId) return;
@@ -166,8 +173,16 @@ export function useMessages(
 			// 1. Fetch persisted history
 			setLoading(true);
 			try {
-				const { messages } = await sessionApi.messages(sessionId, agentId);
+				const { messages, is_running } = await sessionApi.messages(sessionId, agentId);
 				if (cancelled) return;
+				// 会话未在运行时，历史里不应存在「未完成」消息
+				// （崩溃/限流中断的回复 finished_at 为 null，否则会永远
+				// 显示运行中 spinner 和思考微光）——按创建时间就地收尾。
+				if (!is_running) {
+					for (const m of messages) {
+						if (!m.finished_at) m.finished_at = m.created_at;
+					}
+				}
 				msgsRef.current = messages;
 				scheduleUpdate();
 			} catch (e) {
@@ -190,6 +205,15 @@ export function useMessages(
 			} catch (e) {
 				if ((e as Error).name !== 'AbortError' && !cancelled) {
 					setError(e as Error);
+					// 流中断时后端可能不会再发 REPLY_END：就地收尾，
+					// 否则这条回复会永远停在「运行中」 spinner / 思考微光。
+					if (currentReplyRef.current && !currentReplyRef.current.finished_at) {
+						currentReplyRef.current.finished_at = new Date().toISOString();
+						scheduleUpdate();
+					}
+					currentReplyRef.current = null;
+					setStreaming(false);
+					setAwaitingReply(false);
 				}
 			}
 		})();
@@ -223,6 +247,8 @@ export function useMessages(
 					session_id: sessionId,
 					input: userMsg,
 				});
+				// 触发成功，等待 REPLY_START（processEvent 中复位）
+				setAwaitingReply(true);
 			} catch (e) {
 				setError(e as Error);
 			}
@@ -246,6 +272,7 @@ export function useMessages(
 				session_id: sessionId,
 				input: lastUser,
 			});
+			setAwaitingReply(true);
 		} catch (e) {
 			setError(e as Error);
 		}
@@ -305,5 +332,5 @@ export function useMessages(
 		abortRef.current?.abort();
 	}, []);
 
-	return { msgs, loading, streaming, error, send, onUserConfirm, abort, resendLastUserMessage, clearError };
+	return { msgs, loading, streaming, awaitingReply, error, send, onUserConfirm, abort, resendLastUserMessage, clearError };
 }

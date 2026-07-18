@@ -26,7 +26,7 @@
 		"running": "运行中",
 		"save": "保存",
 		"saving": "保存中…",
-		"schedule": "日程",
+		"schedule": "定时任务",
 		"selectAgent": "选择 Agent",
 		"settings": "设置",
 		"success": "成功",
@@ -63,6 +63,15 @@
 		},
 		"grep": {
 			"name": "Grep"
+		},
+		"sections": {
+			"command": "命令",
+			"input": "输入",
+			"output": "输出"
+		},
+		"group": {
+			"title": "工具调用 · {{count}} 步",
+			"failed": "{{count}} 步失败"
 		}
 	},
 	"textInput": {
@@ -86,7 +95,9 @@
 			"tool_output": "工具输出",
 			"team_message": "团队消息",
 			"schedule": "定时任务"
-		}
+		},
+		"copy": "复制",
+		"copied": "已复制到剪贴板"
 	},
 	"chat": {
 		"inputPlaceholder": "描述你的分析任务，例如：对 data/ 下的 PBMC 3k 数据做质控与细胞注释…",
@@ -205,11 +216,11 @@
 			"descriptionLabel": "描述",
 			"descriptionPlaceholder": "描述这个计划任务的用途...",
 			"namePlaceholder": "例如：每日报告",
-			"title": "创建日程"
+			"title": "创建定时任务"
 		},
 		"deleteSchedule": {
-			"entity": "日程",
-			"successToast": "日程已删除。"
+			"entity": "定时任务",
+			"successToast": "定时任务已删除。"
 		},
 		"endAt": "结束日期",
 		"end_at": "结束时间",
@@ -226,9 +237,9 @@
 		"nextMonth": "下个月",
 		"nextYear": "下一年",
 		"noExecutions": "暂无执行记录",
-		"noExecutionsDescription": "该日程尚未执行过。",
-		"noSchedules": "暂无日程",
-		"noSchedulesDescription": "创建日程以自动化 Agent 任务。",
+		"noExecutionsDescription": "该定时任务尚未执行过。",
+		"noSchedules": "暂无定时任务",
+		"noSchedulesDescription": "创建定时任务以自动化 Agent 任务。",
 		"pickDate": "选择日期",
 		"permissionMode": "权限模式",
 		"timezone": "时区",

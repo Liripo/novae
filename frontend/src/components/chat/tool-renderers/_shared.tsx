@@ -1,106 +1,138 @@
 import type { ToolResultBlock } from '@agentscope-ai/agentscope/message';
-import { Circle } from 'lucide-react';
-import type { ReactNode } from 'react';
+import * as mime from 'mime-types';
+import { AlertCircle, Check, Loader2 } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import type { ToolCallWithResult } from './types';
-import lineCornerSvg from '@/assets/images/line-corner.svg';
-import lineVerticalSvg from '@/assets/images/line-vertical.svg';
+import { cn } from '@/lib/utils';
+import { formatTime } from '@/utils/common';
 
-/**
- * Pick the connector image for an item at `index` of `total`:
- * corner for the last row, vertical otherwise.
- */
-function getLineImage(index: number, total: number): string {
-	return index === total - 1 ? lineCornerSvg : lineVerticalSvg;
+/** Per-call status driving the leading glyph — "quiet success, loud failure". */
+export type ToolRowStatus = 'running' | 'asking' | 'error' | 'interrupted' | 'success';
+
+/** Derive the row status from a call + its (optional) result. */
+export function callStatus({ call, result }: ToolCallWithResult): ToolRowStatus {
+	if (call.state === 'asking') return 'asking';
+	if (
+		!result ||
+		result.state === 'running' ||
+		call.state === 'pending' ||
+		call.state === 'allowed' ||
+		call.state === 'submitted'
+	) {
+		return 'running';
+	}
+	if (result.state === 'error' || result.state === 'denied') return 'error';
+	if (result.state === 'interrupted') return 'interrupted';
+	return 'success';
+}
+
+/** Leading glyph for a tool row or group header. */
+export function StatusGlyph({ status }: { status: ToolRowStatus }) {
+	switch (status) {
+		case 'running':
+			return <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />;
+		case 'asking':
+			return (
+				<AlertCircle className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+			);
+		case 'error':
+			return <AlertCircle className="size-3.5 shrink-0 text-destructive" />;
+		case 'interrupted':
+			return (
+				<AlertCircle className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+			);
+		default:
+			// Success is quiet: a muted, low-contrast check.
+			return <Check className="size-3.5 shrink-0 text-muted-foreground/60" />;
+	}
 }
 
 /**
- * Single tree-line cell. Use inside flex rows where one column is the line
- * and the next is the actual content.
+ * Ticking seconds since the component mounted, advancing only while
+ * `active`. Tool blocks carry no timestamps of their own, so a live
+ * "time since this row started running" counter is the honest
+ * approximation available.
  */
-export function TreeLine({
-	index,
-	total,
-	className = 'w-3 h-full',
+export function useElapsedSeconds(active: boolean): number {
+	const [start] = useState(() => Date.now());
+	const [elapsed, setElapsed] = useState(0);
+	useEffect(() => {
+		if (!active) return;
+		const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+		tick();
+		const id = setInterval(tick, 1000);
+		return () => clearInterval(id);
+	}, [active, start]);
+	return elapsed;
+}
+
+/** Small tabular elapsed-time readout shown at the row's trailing edge. */
+export function ElapsedText({ seconds, className }: { seconds: number; className?: string }) {
+	return (
+		<span
+			className={cn(
+				'shrink-0 text-[0.625rem] tabular-nums text-muted-foreground/70',
+				className,
+			)}
+		>
+			{formatTime(seconds)}
+		</span>
+	);
+}
+
+/** 0.65rem uppercase section label above an expanded payload block. */
+export function SectionLabel({ children }: { children: ReactNode }) {
+	return (
+		<p className="mb-1 text-[0.65rem] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+			{children}
+		</p>
+	);
+}
+
+/** Height-capped inline scroll surface for tool payloads. */
+export function SectionSurface({
+	children,
+	mono = true,
+	error = false,
+	className,
 }: {
-	index: number;
-	total: number;
+	children: ReactNode;
+	mono?: boolean;
+	error?: boolean;
 	className?: string;
 }) {
 	return (
-		<div className="flex-shrink-0 h-full items-center">
-			<img src={getLineImage(index, total)} alt="" className={className} />
+		<div
+			className={cn(
+				'max-h-48 max-w-full overflow-auto rounded-md bg-muted/40 px-2 py-1.5',
+				mono && 'font-mono text-[0.7rem] leading-relaxed whitespace-pre-wrap break-all',
+				error ? 'text-destructive' : 'text-muted-foreground',
+				className,
+			)}
+		>
+			{children}
 		</div>
 	);
 }
 
-/**
- * Single corner-only line, used when only one trailing item exists.
- */
-export function CornerLine({ className = 'w-3 h-4' }: { className?: string }) {
-	return (
-		<div className="flex-shrink-0">
-			<img src={lineCornerSvg} alt="" className={className} />
-		</div>
-	);
+/** Extract printable text from a tool result's output (string or blocks). */
+export function resultToText(result: ToolResultBlock | undefined): string {
+	if (!result) return '';
+	if (typeof result.output === 'string') return result.output;
+	return result.output
+		.map((b) => {
+			if (b.type === 'text') return b.text;
+			const mainType = b.source.media_type.split('/')[0].toUpperCase();
+			const ext = (mime.extension(b.source.media_type) || 'bin').toLowerCase();
+			return `[${mainType}.${ext}]`;
+		})
+		.join('\n');
 }
 
-/**
- * Aggregated state icon over a list of tool result states. Mirrors the
- * pre-refactor priority: running/undefined → pulsing muted; all success →
- * green; any error → red; any interrupted → yellow; otherwise muted.
- */
-export function ToolStateIcon({ states }: { states: (ToolResultBlock['state'] | undefined)[] }) {
-	if (states.includes('running') || states.includes(undefined)) {
-		return (
-			<Circle className="size-2.5 text-muted-foreground fill-muted-foreground animate-pulse shrink-0" />
-		);
-	}
-	if (states.every((state) => state === 'success')) {
-		return <Circle className="size-2.5 text-green-500 fill-green-500 shrink-0" />;
-	}
-	if (states.some((state) => state === 'error')) {
-		return <Circle className="size-2.5 text-red-500 fill-red-500 shrink-0" />;
-	}
-	if (states.some((state) => state === 'interrupted')) {
-		return <Circle className="size-2.5 text-yellow-500 fill-yellow-500 shrink-0" />;
-	}
-	return <Circle className="size-2.5 text-muted-foreground fill-muted-foreground shrink-0" />;
-}
-
-/**
- * Header + indented item list, used by Read / Glob / Grep group renderers.
- * Each item shows only the per-call args (no result), connected by SVG tree
- * lines. `inline` lays items horizontally instead of stacked.
- */
-export function ToolCallGroupList({
-	calls,
-	label,
-	renderItem,
-	inline,
-}: {
-	calls: ToolCallWithResult[];
-	label: ReactNode;
-	renderItem: (item: ToolCallWithResult) => ReactNode;
-	inline?: boolean;
-}) {
-	return (
-		<div className="flex flex-col w-full">
-			<div className="flex flex-row gap-x-2 w-full max-w-full items-center">
-				<ToolStateIcon states={calls.map((item) => item.result?.state)} />
-				{label}
-			</div>
-			<div className={`flex ${inline ? 'flex-row' : 'flex-col'} gap-x-2 pl-6 max-w-full`}>
-				{calls.map((item, index) => (
-					<div
-						key={item.call.id}
-						className="flex flex-row gap-x-2 w-full max-w-full items-stretch"
-					>
-						<TreeLine index={index} total={calls.length} />
-						<div className="truncate flex-1 min-w-0 text-sm">{renderItem(item)}</div>
-					</div>
-				))}
-			</div>
-		</div>
-	);
+/** Cap very long outputs; the note line uses the existing tool.moreLines key. */
+export function capLines(text: string, t: (k: string, p?: Record<string, unknown>) => string, max = 100): string {
+	const lines = text.split('\n');
+	if (lines.length <= max) return text;
+	return [...lines.slice(0, max), t('tool.moreLines', { count: lines.length - max })].join('\n');
 }

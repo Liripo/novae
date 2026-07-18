@@ -8,16 +8,33 @@ export interface ToolCallWithResult {
 	result?: ToolResultBlock;
 }
 
+/**
+ * One labeled section inside a tool row's expanded body. Rendered as a
+ * small uppercase label over a height-capped scroll surface.
+ */
+export interface ToolSection {
+	label: string;
+	body: ReactNode;
+	/** Render the body in the mono scroll surface (default true). */
+	mono?: boolean;
+	/** Render the body in destructive color (failed output). */
+	error?: boolean;
+}
+
 export interface ToolRenderer {
+	/** Row title, e.g. `Bash` or the localized tool name. */
 	getDisplayName?: (call: ToolCallBlock, t: TFunction) => string;
+	/** Short inline summary after the title (command / path / pattern…). */
 	renderCallArgs?: (call: ToolCallBlock, t: TFunction) => ReactNode;
-	renderResult?: (call: ToolCallBlock, result: ToolResultBlock, t: TFunction) => ReactNode;
-	renderConfirmBody?: (call: ToolCallBlock, t: TFunction) => ReactNode;
 	/**
-	 * Render a group of consecutive tool calls of the same name.
-	 * Receives the visible (non-truncated) calls — `MessageBubble` truncates
-	 * at the first `asking` call before invoking, and renders ConfirmCard
-	 * separately.
+	 * Expanded body sections. Defaults to input JSON + output text when
+	 * the renderer does not override it.
 	 */
-	renderGroup?: (calls: ToolCallWithResult[], t: TFunction) => ReactNode;
+	renderSections?: (
+		call: ToolCallBlock,
+		result: ToolResultBlock | undefined,
+		t: TFunction,
+	) => ToolSection[];
+	/** Body of the permission ConfirmCard shown for `asking` calls. */
+	renderConfirmBody?: (call: ToolCallBlock, t: TFunction) => ReactNode;
 }

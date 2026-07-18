@@ -63,6 +63,15 @@
 		},
 		"grep": {
 			"name": "Grep"
+		},
+		"sections": {
+			"command": "Command",
+			"input": "Input",
+			"output": "Output"
+		},
+		"group": {
+			"title": "Tool calls · {{count}} steps",
+			"failed": "{{count}} failed"
 		}
 	},
 	"textInput": {
@@ -86,7 +95,9 @@
 			"tool_output": "Tool Output",
 			"team_message": "Team Message",
 			"schedule": "Schedule"
-		}
+		},
+		"copy": "Copy",
+		"copied": "Copied to clipboard"
 	},
 	"chat": {
 		"inputPlaceholder": "Describe your analysis, e.g. QC and cell-type annotation for the PBMC 3k data in data/…",
