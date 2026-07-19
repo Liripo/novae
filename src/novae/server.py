@@ -37,7 +37,6 @@ from novae.agents import seed_builtin_agent
 from novae.config import get_builtin_mcps, get_builtin_skill_paths, get_config
 from novae.model_patch import apply_model_retry_patch
 from novae.projects import ProjectStore
-from novae.runtime_env import RuntimeEnvMiddleware
 from novae.usage import compute_usage_stats
 from novae.workspace import ProjectWorkspaceManager, repair_workspace_mcps
 
@@ -421,39 +420,6 @@ async def novae_lifespan(app: FastAPI):
 
 
 def create_fastapi_app() -> FastAPI:
-    async def runtime_env_agent_middlewares(
-        user_id: str,
-        agent_id: str,
-        session_id: str,
-    ) -> list:
-        """Per-chat-run factory injecting runtime-env facts (OS + workdir).
-
-        ``app`` is late-bound from the enclosing scope: the factory only
-        runs at chat time, long after ``app`` (and ``app.state.storage``)
-        exists. Resolves the session's ``config.workspace_id`` to the
-        project workdir ``workspace_root/<user_id>/<workspace_id>`` —
-        the same layout ProjectWorkspaceManager uses. Returns ``[]`` for
-        unknown sessions or unsafe path components; never raises into the
-        chat pipeline.
-        """
-        try:
-            session = await app.state.storage.get_session(
-                user_id, agent_id, session_id
-            )
-        except Exception:
-            return []
-        if session is None:
-            return []
-        workspace_id = getattr(session.config, "workspace_id", None)
-        if (
-            not workspace_id
-            or not _SAFE_PATH_COMPONENT.match(user_id)
-            or not _SAFE_PATH_COMPONENT.match(workspace_id)
-        ):
-            return []
-        workdir = Path(cfg.workspace_root).resolve() / user_id / workspace_id
-        return [RuntimeEnvMiddleware(str(workdir))]
-
     app: FastAPI = create_app(
         storage=RedisStorage(
             host=cfg.redis_host,
@@ -473,7 +439,6 @@ def create_fastapi_app() -> FastAPI:
             skill_paths=get_builtin_skill_paths(),
         ),
         title="Novae",
-        extra_agent_middlewares=runtime_env_agent_middlewares,
         extra_middlewares=[
             Middleware(EnvModelConfigMiddleware),
             Middleware(

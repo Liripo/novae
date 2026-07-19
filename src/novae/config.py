@@ -35,7 +35,7 @@ def get_config() -> Config:
     workspace_root = Path(
         os.getenv(
             "NOVAE_WORKSPACE_ROOT",
-            str(ROOT_DIR / "data" / "workspaces"),
+            str(Path.home() / ".novae" / "workspaces"),
         )
     )
     workspace_root.mkdir(parents=True, exist_ok=True)

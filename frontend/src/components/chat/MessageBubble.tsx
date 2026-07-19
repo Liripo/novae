@@ -23,6 +23,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 
+import { CodeBlock } from './CodeBlock';
 import { ConfirmCard } from './ConfirmCard';
 import { FileAttachment } from './FileAttachment';
 import { ToolCallGroupView } from './tool-renderers/ToolRows';
@@ -282,6 +283,9 @@ function renderBlock(
 					<ReactMarkdown
 						remarkPlugins={[remarkGfm]}
 						components={{
+							// 代码块外观完全交给 CodeBlock，去掉默认 <pre>
+							// （prose 会给 pre 加深色背景，形成外层黑框）
+							pre: ({ children }) => <>{children}</>,
 							code: ({ className, children, ...props }) => {
 								const isInline = !String(className ?? '').startsWith('language-');
 								if (isInline) {
@@ -291,27 +295,8 @@ function renderBlock(
 										</code>
 									);
 								}
-								return (
-									<div className="relative w-full">
-										<Button
-											size="icon-xs"
-											variant="ghost"
-											className="absolute top-0 right-0 z-10"
-											onClick={async (e) => {
-												e.preventDefault();
-												e.stopPropagation();
-												await navigator.clipboard.writeText(String(children));
-											}}
-										>
-											<Copy />
-										</Button>
-										<div className="overflow-x-auto max-w-full w-full">
-											<code className={className} {...props}>
-												{children}
-											</code>
-										</div>
-									</div>
-								);
+								// 块级代码走语法高亮组件（自带复制按钮）
+								return <CodeBlock className={className}>{children}</CodeBlock>;
 							},
 						}}
 					>
