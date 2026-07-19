@@ -109,7 +109,7 @@ uv run python scripts/create_user.py <用户名> <密码> [user|admin]
 
 ## 🔌 MCP 服务器（工具扩展）
 
-Novae 通过 [MCP](https://modelcontextprotocol.io/)（Model Context Protocol）为 Agent 接入外部工具服务器。MCP 在**每个项目工作区初始化时播种**，配置持久化于 `<工作区>/.mcp`；连接失败的服务器会被自动移除（仅记警告，绝不阻断对话主流程）。界面上（项目工作区抽屉 → MCP）可按项目查看、新增与删除。
+Novae 通过 [MCP](https://modelcontextprotocol.io/)（Model Context Protocol）为 Agent 接入外部工具服务器。界面上（工作区 → MCP）可按项目查看、新增与删除。
 
 ### 内置服务器
 
@@ -117,8 +117,6 @@ Novae 通过 [MCP](https://modelcontextprotocol.io/)（Model Context Protocol）
 |------|----------|----------|----------|
 | **paper-search** | `uv tool run paper-search-mcp` | 57 个工具 | arXiv、PubMed、Crossref、Semantic Scholar、bioRxiv/medRxiv、Google Scholar 等文献检索与下载 |
 | **biomcp** | `uv tool run --from biomcp-python biomcp run` | 36 个工具 | PubMed 文章、ClinicalTrials.gov 临床试验、MyVariant/ClinVar 变异与基因注释 |
-
-> **前置要求**：系统可执行 `uv`（本项目即经 uv 运行；首次启动 MCP 会自动下载依赖，需联网）。启动命令使用 `uv tool run` 而非 `uvx`——后者是独立分发的二进制，部分环境不存在。
 
 ### 自定义：`NOVAE_MCP_SERVERS`
 
@@ -139,20 +137,6 @@ NOVAE_MCP_SERVERS='[{"name": "zotero", "url": "http://localhost:3001/sse", "head
 - HTTP：`url` + 可选 `headers`；
 - 解析失败的条目会被跳过并记警告，不影响其余条目与整体启动。
 
-### 排障
-
-- 聊天中看不到 MCP 工具：查看后端日志中 `Failed to connect stateful MCP` 警告，先确认 `uv` 可用、网络可下载对应包；
-- 历史工作区的 `.mcp` 若曾被误清空，启动时的一次性迁移（`.mcp_repair_v1` 标记）会自动补回内置服务器，且不会复活你主动删除的条目。
-
-### CLI 与内置 Web 工具
-
-- CLI（`uv run novae chat "..."`）会在启动对话前自动连接内置 MCP，连接失败的记警告并跳过；
-- 除 MCP 外，agent 还内置两个自定义 Web 工具（服务端与 CLI 均生效）：
-  - `websearch`：通用网页搜索——配置 `TAVILY_API_KEY`（可选）走 Tavily，否则用 DuckDuckGo（无需密钥）；
-  - `webfetch`：抓取网页正文（主内容抽取，自动去导航/广告，超长截断）。
-- 分工约定：学术文献/生物医学数据优先走 MCP（paper-search / biomcp），通用网络信息走 `websearch` / `webfetch`。
-
----
 
 ## 📁 项目结构
 
