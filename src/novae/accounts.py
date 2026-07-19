@@ -67,13 +67,23 @@ class UserStore:
         return json.loads(raw)
 
     async def upsert(self, username: str, password: str, role: Role) -> None:
+        # 已存在用户保留原创建时间（upsert 也用于重置密码）
+        existing = await self.get(username)
+        created_at = (existing or {}).get("created_at") or datetime.now(
+            timezone.utc
+        ).isoformat()
         salt = secrets.token_bytes(16)
         record = {
             "username": username,
             "password_hash": _hash_password(password, salt),
             "role": role,
+            "created_at": created_at,
         }
         await self._client.set(self._key(username), json.dumps(record))
+
+    async def delete(self, username: str) -> bool:
+        """删除用户记录，返回是否真的删掉了（不存在则 False）。"""
+        return bool(await self._client.delete(self._key(username)))
 
     async def list_usernames(self) -> list[str]:
         """返回所有已注册用户的用户名列表。"""

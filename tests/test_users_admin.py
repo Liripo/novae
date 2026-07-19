@@ -75,3 +75,54 @@ def test_admin_user_management_flow(app, client, admin_headers):
     assert r.status_code == 200, r.text
     users = {u["username"]: u["role"] for u in r.json()["users"]}
     assert users.get("admin") == "admin" and users.get("alice") == "user", users
+
+    # --- 列表携带创建时间（新用户必有 created_at） -----------------------------
+    alice_row = next(u for u in r.json()["users"] if u["username"] == "alice")
+    assert alice_row["created_at"], alice_row
+
+
+def test_delete_user(app, client, admin_headers):
+    # --- 未登录 -> 401 ---------------------------------------------------------
+    r = client.delete("/users/alice")
+    assert r.status_code == 401, r.status_code
+
+    # --- 删除不存在的用户 -> 404 ------------------------------------------------
+    r = client.delete("/users/ghost", headers=admin_headers)
+    assert r.status_code == 404, r.status_code
+
+    # --- 删除自己 -> 400 -------------------------------------------------------
+    r = client.delete("/users/admin", headers=admin_headers)
+    assert r.status_code == 400, r.status_code
+
+    # --- 创建普通用户后删除 ----------------------------------------------------
+    client.post(
+        "/users/",
+        headers=admin_headers,
+        json={"username": "bob", "password": "bob-pw", "role": "user"},
+    )
+    r = client.delete("/users/bob", headers=admin_headers)
+    assert r.status_code == 200, r.text
+    assert r.json() == {"username": "bob", "deleted": True}, r.json()
+
+    # 删除后无法再登录
+    r = client.post("/auth/login", json={"username": "bob", "password": "bob-pw"})
+    assert r.status_code == 401, r.status_code
+
+    # --- 删除最后一个管理员 -> 400 ----------------------------------------------
+    r = client.get("/users/", headers=admin_headers)
+    admins = [u["username"] for u in r.json()["users"] if u["role"] == "admin"]
+    assert admins == ["admin"], admins  # 此时只剩 admin 一个管理员
+    # 用第二个管理员身份尝试删除 admin 也不允许（只剩一个管理员）
+    client.post(
+        "/users/",
+        headers=admin_headers,
+        json={"username": "ops", "password": "ops-pw", "role": "admin"},
+    )
+    r = client.post("/auth/login", json={"username": "ops", "password": "ops-pw"})
+    ops_headers = {"Authorization": f"Bearer {r.json()['token']}"}
+    # ops 删 admin：此时有两个管理员，允许
+    r = client.delete("/users/admin", headers=ops_headers)
+    assert r.status_code == 200, r.text
+    # 现在 ops 是唯一管理员，删自己以外的“最后一个管理员”场景等效为删自己 -> 400
+    r = client.delete("/users/ops", headers=ops_headers)
+    assert r.status_code == 400, r.status_code

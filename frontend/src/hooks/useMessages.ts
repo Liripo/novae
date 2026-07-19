@@ -108,14 +108,22 @@ export function useMessages(
 					// 后端运行失败（如模型 429 限流）：后端不会再发 REPLY_END，
 					// 在此展示错误卡片并收尾运行状态；完全没有内容的空回复
 					// 直接移除，错误卡片已足以说明问题。
+					//
+					// 注意：后端实时发布的 run_error 携带 _live 标记，
+					// 重放的历史帧没有。重放的 run_error 是旧事件残留
+					// （本次打开会话并非真出错），只做状态收尾、不再弹
+					// 错误卡片，否则每次打开会话都会重复显示同一条旧错误。
+					const isLive = (custom as unknown as Record<string, unknown>)._live === true;
 					const value = (custom.value ?? {}) as {
 						error_type?: string;
 						message?: string;
 					};
-					const detail = [value.error_type, value.message]
-						.filter(Boolean)
-						.join(': ');
-					setError(new Error(detail || 'Agent run failed'));
+					if (isLive) {
+						const detail = [value.error_type, value.message]
+							.filter(Boolean)
+							.join(': ');
+						setError(new Error(detail || 'Agent run failed'));
+					}
 					const reply = currentReplyRef.current;
 					if (reply) {
 						if (reply.content.length === 0) {
@@ -144,6 +152,8 @@ export function useMessages(
 					appendEvent(currentReplyRef.current, event);
 				}
 				setStreaming(false);
+				// 保险：正常结束时一并复位等待态（见 send 中的竞态说明）
+				setAwaitingReply(false);
 				currentReplyRef.current = null;
 			} else if (currentReplyRef.current) {
 				appendEvent(currentReplyRef.current, event);
@@ -265,15 +275,18 @@ export function useMessages(
 			msgsRef.current = [...msgsRef.current, userMsg];
 			scheduleUpdate();
 
+			// 先置 awaitingReply 再触发：SSE 的 REPLY_START 可能早于
+			// trigger 的 POST 响应返回，顺序反过来时 REPLY_START 的
+			// 复位会被后面的置真覆盖，导致运行状态永远卡住。
+			setAwaitingReply(true);
 			try {
 				await chatApi.trigger({
 					agent_id: agentId,
 					session_id: sessionId,
 					input: userMsg,
 				});
-				// 触发成功，等待 REPLY_START（processEvent 中复位）
-				setAwaitingReply(true);
 			} catch (e) {
+				setAwaitingReply(false);
 				setError(e as Error);
 			}
 		},
@@ -290,14 +303,16 @@ export function useMessages(
 		const lastUser = [...msgsRef.current].reverse().find((m) => m.role === 'user');
 		if (!lastUser) return;
 		setError(null);
+		// 同 send()：先置位再触发，避免 REPLY_START 竞态
+		setAwaitingReply(true);
 		try {
 			await chatApi.trigger({
 				agent_id: agentId,
 				session_id: sessionId,
 				input: lastUser,
 			});
-			setAwaitingReply(true);
 		} catch (e) {
+			setAwaitingReply(false);
 			setError(e as Error);
 		}
 	}, [agentId, sessionId]);
@@ -356,5 +371,29 @@ export function useMessages(
 		abortRef.current?.abort();
 	}, []);
 
-	return { msgs, loading, streaming, awaitingReply, error, send, onUserConfirm, abort, resendLastUserMessage, clearError };
+	/**
+	 * 中断当前正在运行的回复：调用后端 interrupt（跨进程取消广播），
+	 * 并立即在本地收尾运行状态——后端中断后可能不再补发 REPLY_END，
+	 * 不就地收尾的话这条回复会永远停在「运行中」spinner。
+	 * 迟到的 REPLY_END 到来时 currentReplyRef 已为 null，处理为无操作。
+	 */
+	const stop = useCallback(async () => {
+		if (!agentId || !sessionId) return;
+		try {
+			await sessionApi.interrupt(sessionId, agentId);
+		} catch (e) {
+			setError(e as Error);
+			return;
+		}
+		const reply = currentReplyRef.current;
+		if (reply && !reply.finished_at) {
+			reply.finished_at = new Date().toISOString();
+		}
+		currentReplyRef.current = null;
+		setStreaming(false);
+		setAwaitingReply(false);
+		scheduleUpdate();
+	}, [agentId, sessionId, scheduleUpdate]);
+
+	return { msgs, loading, streaming, awaitingReply, error, send, onUserConfirm, abort, stop, resendLastUserMessage, clearError };
 }

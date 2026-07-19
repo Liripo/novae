@@ -1,5 +1,5 @@
 import type { TaskContext } from '@agentscope-ai/agentscope/state';
-import { ClipboardList, PanelRightClose, PanelRightOpen, Toolbox } from 'lucide-react';
+import { ClipboardList, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ChatContent } from '@/components/chat/ChatContent.tsx';
@@ -51,6 +51,12 @@ interface ChatViewportProps {
 	 * passing this callback wires that signal up.
 	 */
 	onTeamUpdated?: () => void;
+	/**
+	 * 工作区抽屉（MCP/技能）的受控打开状态。打开入口在外层页面的
+	 * 用户菜单中，抽屉本身仍由本组件渲染（数据依赖当前会话）。
+	 */
+	workspaceDrawerOpen?: boolean;
+	onWorkspaceDrawerOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -73,7 +79,7 @@ interface ChatViewportProps {
  *   session is selected yet.
  * @returns The right-side main JSX of the chat page.
  */
-export function ChatViewport({ agentId, sessionId, onTeamUpdated }: ChatViewportProps) {
+export function ChatViewport({ agentId, sessionId, onTeamUpdated, workspaceDrawerOpen, onWorkspaceDrawerOpenChange }: ChatViewportProps) {
 	const { t } = useTranslation();
 	const { sessions, refetch: refetchSessions } = useSessions(agentId);
 	const { projects } = useProjects();
@@ -98,7 +104,7 @@ export function ChatViewport({ agentId, sessionId, onTeamUpdated }: ChatViewport
 		// TODO: handle permission_context updates when permission UI is built
 	}, []);
 
-	const { msgs, streaming, awaitingReply, error, send, onUserConfirm, resendLastUserMessage, clearError } =
+	const { msgs, streaming, awaitingReply, error, send, onUserConfirm, stop, resendLastUserMessage, clearError } =
 		useMessages(agentId, sessionId, {
 			onTeamUpdated: handleTeamUpdated,
 			onStateUpdated: handleStateUpdated,
@@ -206,6 +212,7 @@ export function ChatViewport({ agentId, sessionId, onTeamUpdated }: ChatViewport
 							awaitingReply={awaitingReply}
 							disabled={!sessionId}
 							onSend={send}
+							onStop={stop}
 							onUserConfirm={onUserConfirm}
 							error={error}
 							onRetryError={resendLastUserMessage}
@@ -263,7 +270,11 @@ export function ChatViewport({ agentId, sessionId, onTeamUpdated }: ChatViewport
 					>
 						{rightPanelOpen ? <PanelRightClose /> : <PanelRightOpen />}
 					</Button>
+					{/* 工作区抽屉（MCP/技能）：打开入口在用户菜单，
+					 * 此处仅渲染抽屉本体（受控）。 */}
 					<WorkspaceDrawer
+						open={workspaceDrawerOpen}
+						onOpenChange={onWorkspaceDrawerOpenChange}
 						mcps={mcps}
 						loading={mcpsLoading}
 						onAdd={addMcps}
@@ -272,11 +283,7 @@ export function ChatViewport({ agentId, sessionId, onTeamUpdated }: ChatViewport
 						skillsLoading={skillsLoading}
 						onAddSkill={addSkill}
 						onRemoveSkill={removeSkill}
-					>
-						<Button size="icon-sm" variant="ghost">
-							<Toolbox />
-						</Button>
-					</WorkspaceDrawer>
+					/>
 				</div>
 				{rightPanelOpen && (
 					<aside className="hidden md:flex w-72 lg:w-80 shrink-0 flex-col border-l">

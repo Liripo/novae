@@ -10,6 +10,7 @@ import { TourCard } from '@/components/tour/TourCard';
 import { useTranslation } from '@/i18n/useI18n';
 import { ChatPage } from '@/pages/chat';
 import { SchedulePage } from '@/pages/schedule';
+import { SettingsPage } from '@/pages/settings';
 import { LoginPage } from '@/pages/login';
 import { getToken } from '@/api/client';
 
@@ -39,6 +40,7 @@ const router = createBrowserRouter([
 						element: <ChatPage />,
 					},
 					{ path: '/schedule', element: <SchedulePage /> },
+					{ path: '/settings/:section?', element: <SettingsPage /> },
 				],
 			},
 		],

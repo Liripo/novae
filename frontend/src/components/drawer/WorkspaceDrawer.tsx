@@ -22,7 +22,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.t
 import { useTranslation } from '@/i18n/useI18n.ts';
 
 interface WorkspaceDrawerProps {
-	children: ReactNode;
+	/** 可选触发器（DrawerTrigger 子元素）。入口外置（如用户菜单）时
+	 * 不传，改用 open/onOpenChange 受控打开。 */
+	children?: ReactNode;
+	/** 受控打开状态（与 onOpenChange 配对）。 */
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
 	mcps: MCPClientStatus[];
 	loading?: boolean;
 	onAdd: (mcps: MCPClient[]) => Promise<void>;
@@ -35,6 +40,8 @@ interface WorkspaceDrawerProps {
 
 export function WorkspaceDrawer({
 	children,
+	open,
+	onOpenChange,
 	mcps,
 	loading = false,
 	onAdd,
@@ -62,27 +69,27 @@ export function WorkspaceDrawer({
 		: skills;
 
 	return (
-		<Drawer direction="right">
-			<DrawerTrigger asChild>{children}</DrawerTrigger>
+		<Drawer direction="right" open={open} onOpenChange={onOpenChange}>
+			{children ? <DrawerTrigger asChild>{children}</DrawerTrigger> : null}
 			<DrawerContent>
 				<DrawerHeader>
-					<DrawerTitle>Workspace</DrawerTitle>
-					<DrawerDescription>Where the agent works.</DrawerDescription>
+					<DrawerTitle>{t('common.workspace')}</DrawerTitle>
+					<DrawerDescription>{t('workspace-drawer.description')}</DrawerDescription>
 				</DrawerHeader>
 				<div className="flex flex-col no-scrollbar overflow-y-auto px-4 gap-y-2">
 					<Tabs defaultValue="mcp" onValueChange={setActiveTab}>
 						<TabsList className={'w-full'}>
 							<TabsTrigger value={'mcp'}>MCP</TabsTrigger>
-							<TabsTrigger value={'skill'}>SKILL</TabsTrigger>
+							<TabsTrigger value={'skill'}>{t('workspace-drawer.skillsTab')}</TabsTrigger>
 						</TabsList>
 						<TabsContent value={'mcp'} asChild>
 							<div className="flex flex-col no-scrollbar overflow-y-auto gap-y-2">
 								<span className={'text-muted-foreground text-sm'}>
-									The MCP servers equipped in the workspace.
+									{t('workspace-drawer.mcpHint')}
 								</span>
 								<InputGroup className="mt-4">
 									<InputGroupInput
-										placeholder="Search MCP in the workspace"
+										placeholder={t('workspace-drawer.mcpSearchPlaceholder')}
 										value={search}
 										onChange={(e) => setSearch(e.target.value)}
 									/>
@@ -92,11 +99,11 @@ export function WorkspaceDrawer({
 								</InputGroup>
 								{loading ? (
 									<p className="text-muted-foreground text-sm text-center py-4">
-										Loading…
+										{t('common.loading')}
 									</p>
 								) : filtered.length === 0 ? (
 									<p className="text-muted-foreground text-sm text-center py-4">
-										No MCPs found
+										{t('workspace-drawer.noMcps')}
 									</p>
 								) : (
 									filtered.map((mcp) => (
@@ -115,7 +122,7 @@ export function WorkspaceDrawer({
 																? 'STDIO'
 																: 'HTTP'}
 														</Kbd>
-														<Kbd>{mcp.tools.length} tools</Kbd>
+														<Kbd>{t('workspace-drawer.toolsCount', { count: mcp.tools.length })}</Kbd>
 													</KbdGroup>
 												</ItemDescription>
 											</ItemContent>
@@ -139,11 +146,11 @@ export function WorkspaceDrawer({
 						<TabsContent value={'skill'} asChild>
 							<div className="flex flex-col no-scrollbar overflow-y-auto gap-y-2">
 								<span className={'text-muted-foreground text-sm'}>
-									The skills equipped in the workspace.
+									{t('workspace-drawer.skillsHint')}
 								</span>
 								<InputGroup className="mt-4">
 									<InputGroupInput
-										placeholder="Search skills in the workspace"
+										placeholder={t('workspace-drawer.skillSearchPlaceholder')}
 										value={skillSearch}
 										onChange={(e) => setSkillSearch(e.target.value)}
 									/>
@@ -153,11 +160,11 @@ export function WorkspaceDrawer({
 								</InputGroup>
 								{skillsLoading ? (
 									<p className="text-muted-foreground text-sm text-center py-4">
-										Loading…
+										{t('common.loading')}
 									</p>
 								) : filteredSkills.length === 0 ? (
 									<p className="text-muted-foreground text-sm text-center py-4">
-										No skills found
+										{t('workspace-drawer.noSkills')}
 									</p>
 								) : (
 									filteredSkills.map((skill) => (
@@ -193,14 +200,14 @@ export function WorkspaceDrawer({
 						<CreateMCPDialog onAdd={onAdd}>
 							<Button variant="default">
 								<PlusCircle />
-								Add MCP
+								{t('workspace-drawer.addMcp')}
 							</Button>
 						</CreateMCPDialog>
 					) : (
 						<AddSkillDialog onAdd={onAddSkill}>
 							<Button variant="default">
 								<PlusCircle />
-								Add Skill
+								{t('workspace-drawer.addSkill')}
 							</Button>
 						</AddSkillDialog>
 					)}

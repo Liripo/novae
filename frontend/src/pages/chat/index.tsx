@@ -7,12 +7,14 @@ import {
 	Folder,
 	FolderOpen,
 	FolderPlus,
+	Languages,
 	LogOut,
 	MessageSquareDashed,
 	MessageSquarePlus,
 	Pencil,
 	Plus,
 	Settings,
+	Toolbox,
 	Trash2,
 } from 'lucide-react';
 import { useOnborda } from 'onborda';
@@ -27,7 +29,6 @@ import Logo from '@/assets/images/novae.svg?react';
 import { DeleteDialog } from '@/components/dialog/DeleteDialog';
 import { ProjectDialog, type ProjectFormValues } from '@/components/dialog/ProjectDialog';
 import { RenameSessionDialog } from '@/components/dialog/RenameSessionDialog';
-import { useSettingsDialog } from '@/components/dialog/SettingsDialog';
 import { TeamSidebar } from '@/components/team/TeamSidebar';
 import { ChatTourController } from '@/components/tour/ChatTourController';
 import { CHAT_TOUR_NAME } from '@/components/tour/chatTourSteps';
@@ -69,6 +70,7 @@ import { AudioProvider } from '@/context/AudioContext';
 import { useAgents } from '@/hooks/useAgents';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllSessions, useSessions } from '@/hooks/useSessions';
+import i18n from '@/i18n';
 import { useTranslation } from '@/i18n/useI18n.ts';
 import { cn } from '@/lib/utils';
 
@@ -133,11 +135,13 @@ const ChatPageInner = () => {
 	// current session).
 	const [projectOpen, setProjectOpen] = useState<Record<string, boolean>>({});
 	const [otherOpen, setOtherOpen] = useState(false);
+	// 工作区抽屉（MCP/技能）打开状态：入口在用户卡片菜单，
+	// 抽屉本体由 ChatViewport 渲染（数据依赖当前会话）。
+	const [workspaceDrawerOpen, setWorkspaceDrawerOpen] = useState(false);
 
 	const currentView = sessions.find((v) => v.session.id === urlSessionId) ?? null;
 	const hasScheduleSessions = allSessions.some((v) => v.session.source === 'schedule');
 	const username = getStoredUser();
-	const { openSettings } = useSettingsDialog();
 	// 新手引导触发器（原在最左图标栏，现并入用户卡片菜单）
 	const { startOnborda } = useOnborda();
 
@@ -575,37 +579,63 @@ const ChatPageInner = () => {
 					)}
 				</SidebarContent>
 				<SidebarFooter>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<button
-								type="button"
-								className="flex w-full items-center gap-x-2 rounded-md px-1 py-1 text-left hover:bg-accent"
-							>
-								<span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground text-xs">
-									{(username || '?').charAt(0).toUpperCase()}
-								</span>
-								<span className="truncate text-sm">{username}</span>
-							</button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent side="top" align="start" className="w-44">
-							<DropdownMenuItem onClick={() => openSettings('account')}>
-								<Settings />
-								{t('common.settings')}
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => navigate('/schedule')}>
-									<CalendarClock />
-									{t('common.schedule')}
+					{/* 用户卡片（菜单）+ 右侧设置齿轮（zcode 风格，跳转 /settings） */}
+					<div className="flex items-center gap-x-1">
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									className="flex min-w-0 flex-1 items-center gap-x-2 rounded-md px-1 py-1 text-left hover:bg-accent"
+								>
+									<span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground text-xs">
+										{(username || '?').charAt(0).toUpperCase()}
+									</span>
+									<span className="truncate text-sm">{username}</span>
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent side="top" align="start" className="w-44">
+								{/* 语言快速切换：置顶，点击在 中文/English 间切换 */}
+								<DropdownMenuItem
+									onClick={() =>
+										i18n.changeLanguage(
+											i18n.language.startsWith('zh') ? 'en' : 'zh',
+										)
+									}
+								>
+									<Languages />
+									{t('common.language')}：{i18n.language.startsWith('zh') ? '中文' : 'English'}
 								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => startOnborda(CHAT_TOUR_NAME)}>
-									<Compass />
-									{t('tour.trigger')}
+								{/* 工作区（MCP/技能）抽屉入口；无会话时禁用 */}
+								<DropdownMenuItem
+									disabled={!urlSessionId}
+									onClick={() => setWorkspaceDrawerOpen(true)}
+								>
+									<Toolbox />
+									{t('common.workspace')}
 								</DropdownMenuItem>
-								<DropdownMenuItem variant="destructive" onClick={logout}>
-								<LogOut />
-								{t('account.logout')}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
+								<DropdownMenuItem onClick={() => navigate('/schedule')}>
+										<CalendarClock />
+										{t('common.schedule')}
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => startOnborda(CHAT_TOUR_NAME)}>
+										<Compass />
+										{t('tour.trigger')}
+									</DropdownMenuItem>
+									<DropdownMenuItem variant="destructive" onClick={logout}>
+									<LogOut />
+									{t('account.logout')}
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+						<button
+							type="button"
+							title={t('common.settings')}
+							onClick={() => navigate('/settings')}
+							className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+						>
+							<Settings className="size-4" />
+						</button>
+					</div>
 				</SidebarFooter>
 			</Sidebar>
 			{/*
@@ -624,6 +654,8 @@ const ChatPageInner = () => {
 					agentId={effectiveAgentId}
 					sessionId={effectiveSessionId}
 					onTeamUpdated={refetchSessions}
+					workspaceDrawerOpen={workspaceDrawerOpen}
+					onWorkspaceDrawerOpenChange={setWorkspaceDrawerOpen}
 				/>
 			</div>
 			<RenameSessionDialog

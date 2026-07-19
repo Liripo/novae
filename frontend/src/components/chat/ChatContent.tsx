@@ -19,6 +19,8 @@ interface ChatContentProps {
 	awaitingReply: boolean;
 	disabled: boolean;
 	onSend: (content: ContentBlock[]) => void;
+	/** 中断当前正在运行的回复（busy 时输入区显示停止按钮） */
+	onStop?: () => void;
 	onUserConfirm: (
 		toolCall: ToolCallBlock,
 		confirm: boolean,
@@ -70,6 +72,7 @@ const ChatContentComponent: React.FC<ChatContentProps> = ({
 	awaitingReply,
 	disabled,
 	onSend,
+	onStop,
 	onUserConfirm,
 	autoComplete,
 	className,
@@ -196,6 +199,7 @@ const ChatContentComponent: React.FC<ChatContentProps> = ({
 				<TextInput
 					className="w-full bg-background/80 shadow-lg backdrop-blur-md"
 					onSend={onSend}
+					onStop={onStop}
 					disabled={disabled}
 					busy={sending || awaitingReply}
 					autoComplete={autoComplete}

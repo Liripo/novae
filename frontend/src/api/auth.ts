@@ -19,4 +19,7 @@ export interface MeResponse {
 export const authApi = {
 	login: (body: LoginRequest) => client.post<LoginResponse>('/auth/login', body),
 	me: () => client.get<MeResponse>('/auth/me'),
+	/** 修改当前用户密码（需验证旧密码） */
+	changePassword: (body: { old_password: string; new_password: string }) =>
+		client.post<{ username: string; changed: boolean }>('/auth/password', body),
 };

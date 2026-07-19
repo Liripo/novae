@@ -25,6 +25,15 @@ export const sessionApi = {
 	delete: (sessionId: string, agentId: string) =>
 		client.delete(`/sessions/${sessionId}`, { agent_id: agentId }),
 
+	/**
+	 * 中断会话中正在运行的回复（POST /sessions/{sid}/interrupt → 202）。
+	 * 幂等：会话空闲时后端静默 no-op。
+	 */
+	interrupt: (sessionId: string, agentId: string) =>
+		client.post<{ session_id: string }>(`/sessions/${sessionId}/interrupt`, undefined, {
+			agent_id: agentId,
+		}),
+
 	messages: (sessionId: string, agentId: string, offset = 0, limit = 50) =>
 		client.get<MessagesResponse>(`/sessions/${sessionId}/messages`, {
 			agent_id: agentId,

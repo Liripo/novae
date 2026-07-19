@@ -1,5 +1,5 @@
 import type { ContentBlock, TextBlock } from '@agentscope-ai/agentscope/message';
-import { Paperclip, Send, Loader2, X } from 'lucide-react';
+import { Paperclip, Send, Loader2, Square, X } from 'lucide-react';
 import React, {
 	useState,
 	useRef,
@@ -39,6 +39,8 @@ interface TextInputProps {
 	 * Enter) is blocked — the backend allows only one run per session.
 	 */
 	busy?: boolean;
+	/** 中断当前运行（busy 且提供 onStop 时，发送按钮替换为停止按钮） */
+	onStop?: () => void;
 	className?: string;
 	/**
 	 * Controls which file types the file picker accepts.
@@ -86,6 +88,7 @@ export const TextInput = forwardRef<TextInputRef, TextInputProps>(
 			autoComplete,
 			disabled = false,
 			busy = false,
+			onStop,
 			className,
 			allowedInputTypes,
 			fileProcessor,
@@ -339,24 +342,41 @@ export const TextInput = forwardRef<TextInputRef, TextInputProps>(
 								</TooltipContent>
 							</Tooltip>
 
-							{/* Send button —— 忙碌时仅禁用，不再显示第二个转圈
-							    （运行状态由消息内的计时徽标统一指示） */}
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										type="button"
-										onClick={handleSend}
-										disabled={disabled || busy || !value.trim() || hasProcessing}
-										size="icon"
-										className="shrink-0 rounded-full"
-									>
-										<Send className="h-4 w-4" />
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>
-									{busy ? t('messageBubble.running') : t('textInput.send')}
-								</TooltipContent>
-							</Tooltip>
+							{/* Send / Stop 按钮：运行中（busy）且支持中断时，
+							    发送键替换为停止键；运行状态由消息内的计时徽标统一指示 */}
+							{busy && onStop ? (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											type="button"
+											onClick={onStop}
+											size="icon"
+											variant="destructive"
+											className="shrink-0 rounded-full"
+										>
+											<Square className="h-4 w-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>{t('textInput.stop')}</TooltipContent>
+								</Tooltip>
+							) : (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											type="button"
+											onClick={handleSend}
+											disabled={disabled || busy || !value.trim() || hasProcessing}
+											size="icon"
+											className="shrink-0 rounded-full"
+										>
+											<Send className="h-4 w-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>
+										{busy ? t('messageBubble.running') : t('textInput.send')}
+									</TooltipContent>
+								</Tooltip>
+							)}
 
 							{/* Hidden file input */}
 							<input

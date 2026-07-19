@@ -1,19 +1,22 @@
 [project]
 name = "novae"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.10.0"
+description = "生信智能体平台"
 readme = "README.md"
 authors = [
     { name = "Liripo", email = "liripo@qq.com" }
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "agentscope[service,storage]>=2.0.2",
+    "agentscope[service,storage]>=2.0.4",
     "python-dotenv>=1.0.0",
     "pyjwt>=2.10.0",
     "fastapi[standard]>=0.138.0",
     "typer>=0.26.7",
     "loguru>=0.7.0",
+    "httpx>=0.28.0",
+    "ddgs>=9.0.0",
+    "trafilatura>=2.0.0",
 ]
 
 [project.scripts]

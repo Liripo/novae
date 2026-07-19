@@ -390,6 +390,26 @@ export interface ScheduleData {
 	source_session_id: string;
 }
 
+// ---------- 使用统计 ----------
+
+export interface UsageDaily {
+	date: string;
+	messages: number;
+	tokens: number;
+	models: Record<string, number>;
+}
+
+export interface UsageStats {
+	days: number;
+	total_tokens: number;
+	total_sessions: number;
+	total_messages: number;
+	active_days: number;
+	streak_days: number;
+	top_model: { name: string; share: number } | null;
+	daily: UsageDaily[];
+}
+
 export interface ScheduleRecord extends RecordBase {
 	user_id: string;
 	agent_id: string;

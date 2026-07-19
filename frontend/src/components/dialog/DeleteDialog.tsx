@@ -45,12 +45,12 @@ export function DeleteDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-sm">
+			<DialogContent className="max-w-sm gap-2 px-4 pt-4 pb-0">
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					{description && <DialogDescription>{description}</DialogDescription>}
 				</DialogHeader>
-				<DialogFooter>
+				<DialogFooter className="-mx-4 -mb-0 mt-2">
 					<Button variant="ghost" onClick={() => onOpenChange(false)} disabled={deleting}>
 						<CircleAlert className="size-3.5" />
 						{t('common.cancel')}

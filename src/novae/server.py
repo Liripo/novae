@@ -34,11 +34,12 @@ from novae.accounts import (
     seed_default_users,
 )
 from novae.agents import seed_builtin_agent
-from novae.config import get_config
+from novae.config import get_builtin_mcps, get_builtin_skill_paths, get_config
 from novae.model_patch import apply_model_retry_patch
 from novae.projects import ProjectStore
 from novae.runtime_env import RuntimeEnvMiddleware
-from novae.workspace import ProjectWorkspaceManager
+from novae.usage import compute_usage_stats
+from novae.workspace import ProjectWorkspaceManager, repair_workspace_mcps
 
 # Retune chat-model retries (429-friendly) before any chat run builds a
 # model. Idempotent — safe under module re-imports.
@@ -235,6 +236,11 @@ class CreateUserRequest(BaseModel):
     role: Role = "user"
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
 # Directories never shown (nor recursed into) in the project file tree.
 _TREE_SKIP_DIRS = {
     "node_modules",
@@ -251,6 +257,29 @@ _TREE_MAX_DEPTH = 4
 _TREE_MAX_ENTRIES = 200
 _FILE_CONTENT_LIMIT = 256 * 1024
 _SAFE_PATH_COMPONENT = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+def _get_app_version() -> str:
+    """应用版本号：优先包元数据（pip/uv 安装时来自 pyproject.toml），
+    未安装场景回退到直接解析 pyproject.toml，再兜底 "unknown"。"""
+    try:
+        from importlib.metadata import version
+
+        return version("novae")
+    except Exception:
+        pass
+    try:
+        pyproject = (Path(__file__).resolve().parents[2]) / "pyproject.toml"
+        m = re.search(
+            r'^version\s*=\s*"([^"]+)"',
+            pyproject.read_text(encoding="utf-8"),
+            re.MULTILINE,
+        )
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return "unknown"
 
 
 def _scan_project_tree(workdir: Path) -> list[dict]:
@@ -317,8 +346,16 @@ def _wrap_chat_service_error_events(app: FastAPI) -> None:
     前端收不到任何终止信号，会一直停在「思考中」。事件到达后前端展示
     错误卡片并收尾运行状态。原异常继续抛出，由 ChatService.run 记日志。
 
-    注意：chat_service 在 AgentScope lifespan 启动时才创建，因此本函数
+    注意一：chat_service 在 AgentScope lifespan 启动时才创建，因此本函数
     必须在 novae_lifespan 内调用，不能在 create_fastapi_app 阶段调用。
+
+    注意二：run_error 只做**实时发布**（pub/sub），不写入会话重放日志
+    （session_publish_event 会持久化到 Redis Stream）。原因：
+    - 错误是瞬时通知，用户重开会话时不应再次弹出错误卡片；
+    - 若失败发生在进入 session_run 锁之前（工作区构建等），重放日志
+      不会被 session_run 退出时的 log_trim 清理，事件会永久残留，
+      导致每次打开会话都重复显示错误。
+    重开会话时未完成的回复由历史消息的 is_running 收尾逻辑处理。
     """
     chat_service = app.state.chat_service
     original_run_impl = chat_service._run_impl
@@ -333,15 +370,22 @@ def _wrap_chat_service_error_events(app: FastAPI) -> None:
             await original_run_impl(user_id, session_id, agent_id, input_msg)
         except Exception as exc:
             try:
-                await chat_service._message_bus.session_publish_event(
-                    session_id,
-                    CustomEvent(
-                        name="run_error",
-                        value={
-                            "error_type": type(exc).__name__,
-                            "message": str(exc),
-                        },
-                    ).model_dump(mode="json"),
+                bus = chat_service._message_bus
+                channel = bus._SESSION_EVENTS_KEY.format(sid=session_id)
+                await bus.publish(
+                    channel,
+                    {
+                        # _live 标记实时帧：重放日志中的历史帧没有该字段，
+                        # 前端据此区分「本次真出错」与「旧事件重放」
+                        **CustomEvent(
+                            name="run_error",
+                            value={
+                                "error_type": type(exc).__name__,
+                                "message": str(exc),
+                            },
+                        ).model_dump(mode="json"),
+                        "_live": True,
+                    },
                 )
             except Exception:
                 logger.exception("发布 run_error 事件失败")
@@ -369,6 +413,8 @@ async def novae_lifespan(app: FastAPI):
             await seed_builtin_agent(app)
             for username in await app.state.novae_user_store.list_usernames():
                 await seed_env_credential(app, username)
+            # 一次性修复存量工作区的 .mcp（补回被误移除的内置 MCP）
+            repair_workspace_mcps(cfg.workspace_root)
             yield
         finally:
             await redis.aclose()
@@ -423,6 +469,8 @@ def create_fastapi_app() -> FastAPI:
         ),
         workspace_manager=ProjectWorkspaceManager(
             basedir=str(cfg.workspace_root),
+            default_mcps=get_builtin_mcps(),
+            skill_paths=get_builtin_skill_paths(),
         ),
         title="Novae",
         extra_agent_middlewares=runtime_env_agent_middlewares,
@@ -443,6 +491,19 @@ def create_fastapi_app() -> FastAPI:
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/meta")
+    async def meta() -> dict[str, str]:
+        """应用元信息：版本号取自包元数据（pyproject.toml 的 version）。"""
+        return {"version": _get_app_version()}
+
+    @app.get("/usage/stats")
+    async def usage_stats(
+        days: int = Query(default=30, ge=1, le=365),
+        user_id: str = Depends(_jwt_user_id),
+    ) -> dict:
+        """当前用户的用量统计（会话/消息/token/活跃天/按天趋势）。"""
+        return await compute_usage_stats(app.state.storage, user_id, days)
 
     @app.post("/auth/login", response_model=LoginResponse)
     async def login(body: LoginRequest) -> LoginResponse:
@@ -471,6 +532,30 @@ def create_fastapi_app() -> FastAPI:
                 detail="User not found.",
             )
         return MeResponse(username=record["username"], role=record["role"])
+
+    @app.post("/auth/password")
+    async def change_password(
+        body: ChangePasswordRequest,
+        username: str = Depends(_jwt_user_id),
+    ) -> dict:
+        """修改当前用户密码：验证旧密码后重置；角色与创建时间保留。
+
+        已签发的 JWT 在过期前仍有效（无状态 token，不做强制下线）。
+        """
+        if not body.new_password:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Password must not be empty.",
+            )
+        user_store: UserStore = app.state.novae_user_store
+        record = await user_store.authenticate(username, body.old_password)
+        if record is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect.",
+            )
+        await user_store.upsert(username, body.new_password, record["role"])
+        return {"username": username, "changed": True}
 
     # ------------------------------------------------------------------
     # Project routes — user-scoped projects that bind an agent, a group
@@ -695,14 +780,19 @@ def create_fastapi_app() -> FastAPI:
 
     @app.get("/users/")
     async def list_users(_: str = Depends(_require_admin)) -> dict:
-        """List every registered user as ``{username, role}`` (admin only)."""
+        """List every registered user (admin only)."""
         user_store: UserStore = app.state.novae_user_store
         users = []
         for username in await user_store.list_usernames():
             record = await user_store.get(username)
             if record is not None:
                 users.append(
-                    {"username": record["username"], "role": record["role"]}
+                    {
+                        "username": record["username"],
+                        "role": record["role"],
+                        # 老记录可能没有 created_at 字段
+                        "created_at": record.get("created_at"),
+                    }
                 )
         users.sort(key=lambda u: u["username"])
         return {"users": users, "total": len(users)}
@@ -733,6 +823,39 @@ def create_fastapi_app() -> FastAPI:
         await user_store.upsert(username, body.password, body.role)
         await seed_env_credential(app, username)
         return {"username": username, "role": body.role}
+
+    @app.delete("/users/{username}")
+    async def delete_user(
+        username: str,
+        admin_id: str = Depends(_require_admin),
+    ) -> dict:
+        """删除用户（仅管理员）。不允许删除自己或最后一个管理员。"""
+        if username == admin_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot delete your own account.",
+            )
+        user_store: UserStore = app.state.novae_user_store
+        record = await user_store.get(username)
+        if record is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User {username!r} not found.",
+            )
+        if record.get("role") == "admin":
+            # 统计剩余管理员数量，避免删光管理员
+            admins = 0
+            for name in await user_store.list_usernames():
+                other = await user_store.get(name)
+                if other is not None and other.get("role") == "admin":
+                    admins += 1
+            if admins <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot delete the last admin account.",
+                )
+        await user_store.delete(username)
+        return {"username": username, "deleted": True}
 
     return app
 

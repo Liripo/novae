@@ -1,335 +1,389 @@
 {
-	"common": {
-		"add": "Add",
-		"agent": "Agent",
-		"brandSubtitle": "Bioinformatics AI Platform",
-		"cancel": "Cancel",
-		"chat": "Chat",
-		"close": "Close",
-		"confirm": "Confirm",
-		"create": "Create",
-		"creating": "Creating…",
-		"date": "Date",
-		"delete": "Delete",
-		"deleting": "Deleting…",
-		"disabled": "Disabled",
-		"edit": "Edit",
-		"error": "Something went wrong",
-		"information": "Info",
-		"interrupted": "Interrupted",
-		"loading": "Loading...",
-		"name": "Name",
-		"no": "No",
-		"noData": "No data",
-		"completed": "Completed",
-		"failed": "Failed",
-		"running": "Running",
-		"save": "Save",
-		"saving": "Saving…",
-		"schedule": "Schedule",
-		"selectAgent": "Select an agent",
-		"settings": "Settings",
-		"success": "Success",
-		"team": "Team",
-		"leader": "Leader",
-		"worker": "Worker",
-		"time": "Time",
-		"yes": "Yes",
-		"deleteTitle": "Delete {{entity}} \"{{name}}\"?",
-		"deleteDescription": "This action cannot be undone."
-	},
-	"error": {
-		"description": "The page hit an unexpected error. You can retry or go back home.",
-		"retry": "Retry",
-		"home": "Back to home"
-	},
-	"tool": {
-		"moreLines": "... {{count}} more lines",
-		"read": {
-			"name": "Read",
-			"fileCount_one": "{{count}} file",
-			"fileCount_other": "{{count}} files",
-			"lineCount_one": "Read {{formatted}} line",
-			"lineCount_other": "Read {{formatted}} lines"
-		},
-		"glob": {
-			"name": "Glob"
-		},
-		"taskCreate": {
-			"name": "TaskCreate",
-			"label": "Create",
-			"count_one": "{{count}} task",
-			"count_other": "{{count}} tasks"
-		},
-		"grep": {
-			"name": "Grep"
-		},
-		"sections": {
-			"command": "Command",
-			"input": "Input",
-			"output": "Output"
-		},
-		"group": {
-			"title": "Tool calls · {{count}} steps",
-			"failed": "{{count}} failed"
-		}
-	},
-	"textInput": {
-		"toComplete": "to complete",
-		"newLine": "new line",
-		"attach": "Attach file",
-		"attachNotSupported": "This model does not support file attachments",
-		"send": "Send"
-	},
-	"confirmCard": {
-		"toConfirm": "to confirm",
-		"yesWithRule": "Yes, and allow {{toolName}} to execute {{ruleContent}} for this session"
-	},
-	"messageBubble": {
-		"thinking": "Thinking",
-		"audioGenerating": "Generating audio…",
-		"playAudio": "Play audio",
-		"pauseAudio": "Pause audio",
-		"running": "Running...",
-		"hintSource": {
-			"tool_output": "Tool Output",
-			"team_message": "Team Message",
-			"schedule": "Schedule"
-		},
-		"copy": "Copy",
-		"copied": "Copied to clipboard"
-	},
-	"chat": {
-		"inputPlaceholder": "Describe your analysis, e.g. QC and cell-type annotation for the PBMC 3k data in data/…",
-		"placeholder": "Describe your analysis, e.g. QC and cell-type annotation for the PBMC 3k data in data/…",
-		"send": "Send",
-		"confirmToolCall": "Allow this action?",
-		"newSession": "New Session",
-		"noSessions": "No sessions yet",
-		"noMessages": "No Messages Yet",
-		"noMessagesDesc": "Send a message — e.g. \"analyze the expression matrix in data/\" — to start.",
-		"backToBottom": "Back to bottom",
-		"error": {
-			"rateLimit": "The model is busy (rate limited) and automatic retries were exhausted — please wait a moment and try again.",
-			"busy": "Still processing the previous message — please wait a moment.",
-			"network": "Network error — check your connection and try again.",
-			"unknown": "Something went wrong — please try again.",
-			"retry": "Retry",
-			"technicalDetails": "Technical details"
-		},
-		"session": {
-			"label": "Session",
-			"emptyTitle": "No sessions",
-			"emptyNoAgent": "Select an agent first.",
-			"emptyHasAgent": "Create a session to start chatting."
-		},
-		"project": {
-			"label": "Projects",
-			"newSessionInProject": "New session",
-			"create": "New Project",
-			"emptyTitle": "No projects",
-			"emptyDescription": "Create a project to organize sessions around a dedicated working directory.",
-			"noAgentHint": "No agents available — cannot create a project.",
-			"otherSessions": "Other sessions"
-		}
-	},
-	"dialog-project": {
-		"createTitle": "New project",
-		"editTitle": "Rename project",
-		"description": "A project binds a group of sessions to one agent and a dedicated working directory.",
-		"nameLabel": "Name",
-		"namePlaceholder": "PBMC 3k QC & annotation",
-		"descLabel": "Description",
-		"descPlaceholder": "e.g. QC, clustering and cell-type annotation for the matrix in data/",
-		"agentLabel": "Agent",
-		"agentPlaceholder": "Select an agent",
-		"noAgents": "No agents available — cannot create a project."
-	},
-	"dialog-project-delete": {
-		"entity": "project",
-		"confirm": "Delete",
-		"description": "All sessions in this project and every file in its working directory will also be deleted. This action cannot be undone."
-	},
-	"project-files": {
-		"noProject": "This session does not belong to any project — no project files to show.",
-		"noFiles": "The working directory is empty.",
-		"userRoot": "My workspace",
-		"backToTree": "Back to files",
-		"truncated": "File too large — showing the first 256 KB only."
-	},
-	"right-panel": {
-		"tasks": "Tasks",
-		"files": "Files",
-		"toggle": "Toggle right panel"
-	},
-	"dialog-session-delete": {
-		"entity": "session",
-		"confirm": "Delete"
-	},
-	"dialog-session-rename": {
-		"title": "Rename session",
-		"description": "Give this session a new name.",
-		"label": "Name",
-		"placeholder": "Session name"
-	},
-	"session-menu": {
-		"rename": "Rename",
-		"delete": "Delete"
-	},
-	"permission-mode": {
-		"placeholder": "Select permission mode",
-		"trigger-tooltip": "Permission Mode",
-		"label": "Permission Mode",
-		"default-tooltip": "Default mode: all operations require explicit permission (most secure)",
-		"accept_edits-tooltip": "Auto-allow file reads/writes in working directories and filesystem commands; other operations follow normal rules",
-		"explore-tooltip": "Read-only mode: allow read/grep/glob tools, deny write/edit/bash modification tools",
-		"bypass-tooltip": "All operations automatically allowed without any permission checks (use in trusted/sandbox environments)",
-		"dont_ask-tooltip": "Convert all ASK decisions to DENY; suitable for scheduled tasks or background execution when user is unavailable"
-	},
-	"dialog-mcp-create": {
-		"title": "Add MCP Servers",
-		"description": "Add new MCP server(s) by configuration.",
-		"configLabel": "MCP Configuration",
-		"keepAlive": "Keep Alive",
-		"keepAliveDesc": "Maintain state across interactions. Enable for browser-use or other long-running MCPs.",
-		"adding": "Adding…",
-		"added": "Added",
-		"parseError": "Invalid JSON configuration: {{message}}",
-		"missingMcpServers": "Configuration must contain a \"mcpServers\" object.",
-		"emptyMcpServers": "No MCP servers found in configuration."
-	},
-	"dialog-mcp-delete": {
-		"entity": "MCP server",
-		"skillEntity": "skill",
-		"skillDescription": "Are you sure you want to remove this skill from the workspace?"
-	},
-	"dialog-skill-add": {
-		"title": "Add skill",
-		"description": "Enter the path to a skill directory to add it to the workspace.",
-		"pathLabel": "Skill path",
-		"pathPlaceholder": "/path/to/skill"
-	},
-	"schedule": {
-		"calendar": "Calendar",
-		"createSchedule": {
-			"description": "Set up a recurring or one-time scheduled task for an agent.",
-			"descriptionLabel": "Description",
-			"descriptionPlaceholder": "Describe what this schedule should do...",
-			"namePlaceholder": "e.g. Daily Report",
-			"title": "Create Schedule"
-		},
-		"deleteSchedule": {
-			"entity": "schedule",
-			"successToast": "Schedule deleted successfully."
-		},
-		"endAt": "End Date",
-		"end_at": "End At",
-		"executionHistory": "Execution History",
-		"freqDaily": "Daily",
-		"freqMonthly": "Monthly",
-		"freqOnce": "Once",
-		"freqWeekly": "Weekly",
-		"frequency": "Frequency",
-		"friday": "Fri",
-		"list": "List",
-		"monday": "Mon",
-		"more": "more",
-		"nextMonth": "Next Month",
-		"nextYear": "Next Year",
-		"noExecutions": "No executions yet",
-		"noExecutionsDescription": "This schedule has not been executed yet.",
-		"noSchedules": "No schedules",
-		"noSchedulesDescription": "Create a schedule to automate agent tasks.",
-		"pickDate": "Pick a date",
-		"permissionMode": "Permission Mode",
-		"timezone": "Timezone",
-		"triggerTime": "Trigger Time",
-		"createdAt": "Created At",
-		"dayOfMonthSuffix": "",
-		"stateful": "Stateful",
-		"statefulDesc": "Reuse one session across all fires to accumulate context. Disabled: every fire creates a fresh session.",
-		"previousMonth": "Previous Month",
-		"previousYear": "Previous Year",
-		"saturday": "Sat",
-		"startAt": "Start At",
-		"sunday": "Sun",
-		"thursday": "Thu",
-		"today": "Today",
-		"tuesday": "Tue",
-		"wednesday": "Wed"
-	},
-	"login": {
-		"title": "Sign in to Novae Bio",
-		"description": "An AI agent platform for bioinformatics analysis. Enter your username and password to continue.",
-		"username": "Username",
-		"usernamePlaceholder": "Your username",
-		"password": "Password",
-		"passwordPlaceholder": "Your password",
-		"submit": "Sign in",
-		"submitting": "Signing in…",
-		"error": "Invalid username or password."
-	},
-	"account": {
-		"logout": "Sign out"
-	},
-	"settings": {
-		"title": "Settings",
-		"description": "Manage your account, preferences and workspace files.",
-		"accountTab": "Account",
-		"generalTab": "General",
-		"filesTab": "Files",
-		"usersTab": "Users",
-		"aboutTab": "About",
-		"username": "Username",
-		"role": "Role",
-		"language": "Language",
-		"filesHint": "Browse your workspace root (top level = project directories).",
-		"aboutProduct": "Novae · Bioinformatics AI Platform",
-		"aboutTagline": "An AI agent platform for bioinformatics analysis.",
-		"version": "Version",
-		"users": {
-			"listLabel": "Existing users",
-			"createTitle": "Create user",
-			"usernamePlaceholder": "Username",
-			"passwordPlaceholder": "Password",
-			"roleUser": "User",
-			"roleAdmin": "Admin",
-			"created": "User {{name}} created"
-		}
-	},
-	"tour": {
-		"trigger": "Take a tour",
-		"prev": "Back",
-		"next": "Next",
-		"finish": "Finish",
-		"skip": "Skip",
-		"step": "Step {{current}} / {{total}}",
-		"createProject": {
-			"title": "Create a project",
-			"content": "Start by creating a project — sessions and files live inside projects."
-		},
-		"permissionMode": {
-			"title": "Permission mode",
-			"content": "Decide whether tool calls need confirmation."
-		},
-		"chatInput": {
-			"title": "Start chatting",
-			"content": "Describe your analysis and press Enter. Paperclip attaches data files."
-		}
-	},
-	"task-panel": {
-		"heading": "Tasks",
-		"noTasks": "No tasks yet.",
-		"pending": "Pending",
-		"inProgress": "In Progress",
-		"completed": "Completed",
-		"blockedBy": "blocked by"
-	},
-	"team-sidebar": {
-		"membersHeading": "Members",
-		"noMembers": "No members yet — ask the leader to spawn one with AgentCreate.",
-		"running": "Running",
-		"idle": "Idle",
-		"missingSession": "(no session)"
-	}
+  "common": {
+    "add": "Add",
+    "agent": "Agent",
+    "brandSubtitle": "Bioinformatics AI Platform",
+    "cancel": "Cancel",
+    "chat": "Chat",
+    "close": "Close",
+    "confirm": "Confirm",
+    "create": "Create",
+    "creating": "Creating…",
+    "date": "Date",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "disabled": "Disabled",
+    "edit": "Edit",
+    "error": "Something went wrong",
+    "information": "Info",
+    "interrupted": "Interrupted",
+    "loading": "Loading...",
+    "name": "Name",
+    "no": "No",
+    "noData": "No data",
+    "completed": "Completed",
+    "failed": "Failed",
+    "running": "Running",
+    "save": "Save",
+    "saving": "Saving…",
+    "schedule": "Schedule",
+    "selectAgent": "Select an agent",
+    "settings": "Settings",
+    "success": "Success",
+    "team": "Team",
+    "leader": "Leader",
+    "worker": "Worker",
+    "time": "Time",
+    "yes": "Yes",
+    "deleteTitle": "Delete {{entity}} \"{{name}}\"?",
+    "deleteDescription": "This action cannot be undone.",
+    "workspace": "Workspace",
+    "language": "Language"
+  },
+  "error": {
+    "description": "The page hit an unexpected error. You can retry or go back home.",
+    "retry": "Retry",
+    "home": "Back to home"
+  },
+  "tool": {
+    "moreLines": "... {{count}} more lines",
+    "read": {
+      "name": "Read",
+      "fileCount_one": "{{count}} file",
+      "fileCount_other": "{{count}} files",
+      "lineCount_one": "Read {{formatted}} line",
+      "lineCount_other": "Read {{formatted}} lines"
+    },
+    "glob": {
+      "name": "Glob"
+    },
+    "taskCreate": {
+      "name": "TaskCreate",
+      "label": "Create",
+      "count_one": "{{count}} task",
+      "count_other": "{{count}} tasks"
+    },
+    "grep": {
+      "name": "Grep"
+    },
+    "sections": {
+      "command": "Command",
+      "input": "Input",
+      "output": "Output"
+    },
+    "group": {
+      "title": "Tool calls · {{count}} steps",
+      "failed": "{{count}} failed"
+    }
+  },
+  "textInput": {
+    "toComplete": "to complete",
+    "newLine": "new line",
+    "attach": "Attach file",
+    "attachNotSupported": "This model does not support file attachments",
+    "send": "Send",
+    "stop": "Stop generating"
+  },
+  "confirmCard": {
+    "toConfirm": "to confirm",
+    "yesWithRule": "Yes, and allow {{toolName}} to execute {{ruleContent}} for this session"
+  },
+  "messageBubble": {
+    "thinking": "Thinking",
+    "audioGenerating": "Generating audio…",
+    "playAudio": "Play audio",
+    "pauseAudio": "Pause audio",
+    "running": "Running...",
+    "hintSource": {
+      "tool_output": "Tool Output",
+      "team_message": "Team Message",
+      "schedule": "Schedule"
+    },
+    "copy": "Copy",
+    "copied": "Copied to clipboard"
+  },
+  "chat": {
+    "inputPlaceholder": "Describe your analysis, e.g. QC and cell-type annotation for the PBMC 3k data in data/…",
+    "placeholder": "Describe your analysis, e.g. QC and cell-type annotation for the PBMC 3k data in data/…",
+    "send": "Send",
+    "confirmToolCall": "Allow this action?",
+    "newSession": "New Session",
+    "noSessions": "No sessions yet",
+    "noMessages": "No Messages Yet",
+    "noMessagesDesc": "Send a message — e.g. \"analyze the expression matrix in data/\" — to start.",
+    "backToBottom": "Back to bottom",
+    "error": {
+      "rateLimit": "The model is busy (rate limited) and automatic retries were exhausted — please wait a moment and try again.",
+      "busy": "Still processing the previous message — please wait a moment.",
+      "network": "Network error — check your connection and try again.",
+      "unknown": "Something went wrong — please try again.",
+      "retry": "Retry",
+      "technicalDetails": "Technical details"
+    },
+    "session": {
+      "label": "Session",
+      "emptyTitle": "No sessions",
+      "emptyNoAgent": "Select an agent first.",
+      "emptyHasAgent": "Create a session to start chatting."
+    },
+    "project": {
+      "label": "Projects",
+      "newSessionInProject": "New session",
+      "create": "New Project",
+      "emptyTitle": "No projects",
+      "emptyDescription": "Create a project to organize sessions around a dedicated working directory.",
+      "noAgentHint": "No agents available — cannot create a project.",
+      "otherSessions": "Other sessions"
+    }
+  },
+  "dialog-project": {
+    "createTitle": "New project",
+    "editTitle": "Rename project",
+    "description": "A project binds a group of sessions to one agent and a dedicated working directory.",
+    "nameLabel": "Name",
+    "namePlaceholder": "PBMC 3k QC & annotation",
+    "descLabel": "Description",
+    "descPlaceholder": "e.g. QC, clustering and cell-type annotation for the matrix in data/",
+    "agentLabel": "Agent",
+    "agentPlaceholder": "Select an agent",
+    "noAgents": "No agents available — cannot create a project."
+  },
+  "dialog-project-delete": {
+    "entity": "project",
+    "confirm": "Delete",
+    "description": "All sessions in this project and every file in its working directory will also be deleted. This action cannot be undone."
+  },
+  "project-files": {
+    "noProject": "This session does not belong to any project — no project files to show.",
+    "noFiles": "The working directory is empty.",
+    "userRoot": "My workspace",
+    "backToTree": "Back to files",
+    "truncated": "File too large — showing the first 256 KB only."
+  },
+  "right-panel": {
+    "tasks": "Tasks",
+    "files": "Files",
+    "toggle": "Toggle right panel"
+  },
+  "workspace-drawer": {
+    "description": "Where the agent works.",
+    "mcpHint": "The MCP servers equipped in the workspace.",
+    "mcpSearchPlaceholder": "Search MCP in the workspace",
+    "noMcps": "No MCPs found",
+    "skillsTab": "Skills",
+    "skillsHint": "The skills equipped in the workspace.",
+    "skillSearchPlaceholder": "Search skills in the workspace",
+    "noSkills": "No skills found",
+    "addMcp": "Add MCP",
+    "addSkill": "Add Skill",
+    "toolsCount": "{{count}} tools"
+  },
+  "dialog-session-delete": {
+    "entity": "session",
+    "confirm": "Delete"
+  },
+  "dialog-session-rename": {
+    "title": "Rename session",
+    "description": "Give this session a new name.",
+    "label": "Name",
+    "placeholder": "Session name"
+  },
+  "session-menu": {
+    "rename": "Rename",
+    "delete": "Delete"
+  },
+  "permission-mode": {
+    "placeholder": "Select permission mode",
+    "trigger-tooltip": "Permission Mode",
+    "label": "Permission Mode",
+    "default-tooltip": "Default mode: all operations require explicit permission (most secure)",
+    "accept_edits-tooltip": "Auto-allow file reads/writes in working directories and filesystem commands; other operations follow normal rules",
+    "explore-tooltip": "Read-only mode: allow read/grep/glob tools, deny write/edit/bash modification tools",
+    "bypass-tooltip": "All operations automatically allowed without any permission checks (use in trusted/sandbox environments)",
+    "dont_ask-tooltip": "Convert all ASK decisions to DENY; suitable for scheduled tasks or background execution when user is unavailable"
+  },
+  "dialog-mcp-create": {
+    "title": "Add MCP Servers",
+    "description": "Add new MCP server(s) by configuration.",
+    "configLabel": "MCP Configuration",
+    "keepAlive": "Keep Alive",
+    "keepAliveDesc": "Maintain state across interactions. Enable for browser-use or other long-running MCPs.",
+    "adding": "Adding…",
+    "added": "Added",
+    "parseError": "Invalid JSON configuration: {{message}}",
+    "missingMcpServers": "Configuration must contain a \"mcpServers\" object.",
+    "emptyMcpServers": "No MCP servers found in configuration."
+  },
+  "dialog-mcp-delete": {
+    "entity": "MCP server",
+    "skillEntity": "skill",
+    "skillDescription": "Are you sure you want to remove this skill from the workspace?"
+  },
+  "dialog-skill-add": {
+    "title": "Add skill",
+    "description": "Enter the path to a skill directory to add it to the workspace.",
+    "pathLabel": "Skill path",
+    "pathPlaceholder": "/path/to/skill"
+  },
+  "schedule": {
+    "calendar": "Calendar",
+    "createSchedule": {
+      "description": "Set up a recurring or one-time scheduled task for an agent.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe what this schedule should do...",
+      "namePlaceholder": "e.g. Daily Report",
+      "title": "Create Schedule"
+    },
+    "deleteSchedule": {
+      "entity": "schedule",
+      "successToast": "Schedule deleted successfully."
+    },
+    "endAt": "End Date",
+    "end_at": "End At",
+    "executionHistory": "Execution History",
+    "freqDaily": "Daily",
+    "freqMonthly": "Monthly",
+    "freqOnce": "Once",
+    "freqWeekly": "Weekly",
+    "frequency": "Frequency",
+    "friday": "Fri",
+    "list": "List",
+    "monday": "Mon",
+    "more": "more",
+    "nextMonth": "Next Month",
+    "nextYear": "Next Year",
+    "noExecutions": "No executions yet",
+    "noExecutionsDescription": "This schedule has not been executed yet.",
+    "noSchedules": "No schedules",
+    "noSchedulesDescription": "Create a schedule to automate agent tasks.",
+    "pickDate": "Pick a date",
+    "permissionMode": "Permission Mode",
+    "timezone": "Timezone",
+    "triggerTime": "Trigger Time",
+    "createdAt": "Created At",
+    "dayOfMonthSuffix": "",
+    "stateful": "Stateful",
+    "statefulDesc": "Reuse one session across all fires to accumulate context. Disabled: every fire creates a fresh session.",
+    "previousMonth": "Previous Month",
+    "previousYear": "Previous Year",
+    "saturday": "Sat",
+    "startAt": "Start At",
+    "sunday": "Sun",
+    "thursday": "Thu",
+    "today": "Today",
+    "tuesday": "Tue",
+    "wednesday": "Wed"
+  },
+  "login": {
+    "title": "Sign in to Novae Bio",
+    "description": "An AI agent platform for bioinformatics analysis. Enter your username and password to continue.",
+    "username": "Username",
+    "usernamePlaceholder": "Your username",
+    "password": "Password",
+    "passwordPlaceholder": "Your password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "error": "Invalid username or password."
+  },
+  "account": {
+    "logout": "Sign out"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account, preferences and workspace files.",
+    "accountTab": "Account",
+    "filesTab": "Files",
+    "usersTab": "Users",
+    "aboutTab": "About",
+    "username": "Username",
+    "role": "Role",
+    "language": "Language",
+    "filesHint": "Browse your workspace root (top level = project directories).",
+    "aboutProduct": "Novae · Bioinformatics AI Platform",
+    "aboutTagline": "An AI agent platform for bioinformatics analysis.",
+    "version": "Version",
+    "users": {
+      "createTitle": "Create user",
+      "usernamePlaceholder": "Username",
+      "passwordPlaceholder": "Password",
+      "roleUser": "User",
+      "roleAdmin": "Admin",
+      "created": "User {{name}} created",
+      "total": "{{count}} users",
+      "colUser": "User",
+      "colRole": "Role",
+      "colCreatedAt": "Created",
+      "colActions": "Actions",
+      "me": "me",
+      "delete": "Delete",
+      "deleteTitle": "Delete user",
+      "deleteConfirm": "Delete user \"{{name}}\"? Project files remain on disk, but the account can no longer sign in.",
+      "deleted": "User {{name}} deleted"
+    },
+    "backToWorkspace": "Back to workspace",
+    "languageHint": "Choose the UI display language.",
+    "usageTab": "Usage",
+    "password": {
+      "label": "Change password",
+      "change": "Change",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "empty": "New password must not be empty",
+      "mismatch": "The two new passwords do not match",
+      "changed": "Password changed. Use it the next time you sign in"
+    }
+  },
+  "tour": {
+    "trigger": "Take a tour",
+    "prev": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "skip": "Skip",
+    "step": "Step {{current}} / {{total}}",
+    "createProject": {
+      "title": "Create a project",
+      "content": "Start by creating a project — sessions and files live inside projects."
+    },
+    "permissionMode": {
+      "title": "Permission mode",
+      "content": "Decide whether tool calls need confirmation."
+    },
+    "chatInput": {
+      "title": "Start chatting",
+      "content": "Describe your analysis and press Enter. Paperclip attaches data files."
+    }
+  },
+  "task-panel": {
+    "heading": "Tasks",
+    "noTasks": "No tasks yet.",
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "blockedBy": "blocked by"
+  },
+  "team-sidebar": {
+    "membersHeading": "Members",
+    "noMembers": "No members yet — ask the leader to spawn one with AgentCreate.",
+    "running": "Running",
+    "idle": "Idle",
+    "missingSession": "(no session)"
+  },
+  "usage": {
+    "last7Days": "Last 7 days",
+    "last30Days": "Last 30 days",
+    "tokensUsed": "Tokens used",
+    "sessions": "Sessions",
+    "messages": "Messages",
+    "activeDays": "Active days",
+    "streakDays": "Current streak",
+    "topModel": "Top model",
+    "shareOf": "{{share}}% of usage",
+    "heatmap": "Activity heatmap",
+    "dailyTrend": "Daily token trend",
+    "less": "Less",
+    "more": "More",
+    "noData": "No data yet",
+    "cellActivity": "{{count}} messages on {{date}}"
+  }
 }

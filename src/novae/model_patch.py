@@ -1,4 +1,4 @@
-"""Env-configurable retry policy for chat models (rate-limit friendly).
+"""Env-configurable retry policy and model name for chat models.
 
 ``agentscope.app._service._chat`` builds chat models via its module-level
 ``get_model`` import. The model's retry loop reads the *instance*
@@ -7,9 +7,13 @@ at run time, so wrapping ``get_model`` and setting those attributes on
 every constructed instance retunes retries centrally — no agentscope
 code changes.
 
-The defaults here (5 attempts, 3s delay) target free-tier models that
-answer 429 often; both are overridable via ``NOVAE_MODEL_MAX_RETRIES``
-and ``NOVAE_MODEL_RETRY_DELAY`` and are re-read on every model build.
+The defaults here (5 attempts, 3s delay) target rate-limit-heavy models;
+both are overridable via ``NOVAE_MODEL_MAX_RETRIES`` and
+``NOVAE_MODEL_RETRY_DELAY`` and are re-read on every model build.
+
+Additionally, the patch overrides the model name from ``NOVAE_MODEL`` on
+every invocation, so changing ``.env`` takes effect immediately for all
+sessions — not just newly created ones.
 """
 import os
 
@@ -28,8 +32,12 @@ def apply_model_retry_patch() -> None:
     setattr(_chat_module, _ORIGINAL_ATTR, _chat_module.get_model)
 
     async def get_model_with_retry(user_id, config, storage):
-        # Resolve the original at call time so tests can stub the
-        # sentinel attribute without re-applying the patch.
+        # Always use the latest model name from .env so changing
+        # NOVAE_MODEL takes effect immediately on all sessions.
+        env_model = os.getenv("NOVAE_MODEL")
+        if env_model and config is not None:
+            config.model = env_model
+
         original = getattr(_chat_module, _ORIGINAL_ATTR)
         model = await original(user_id, config, storage)
         model.max_retries = int(os.getenv("NOVAE_MODEL_MAX_RETRIES", "5"))

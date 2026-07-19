@@ -1,335 +1,389 @@
 {
-	"common": {
-		"add": "添加",
-		"agent": "Agent",
-		"brandSubtitle": "生信智能分析平台",
-		"cancel": "取消",
-		"chat": "聊天",
-		"close": "关闭",
-		"confirm": "确认",
-		"create": "创建",
-		"creating": "创建中…",
-		"date": "日期",
-		"delete": "删除",
-		"deleting": "删除中…",
-		"disabled": "已禁用",
-		"edit": "编辑",
-		"error": "出错了",
-		"information": "信息",
-		"interrupted": "已中断",
-		"loading": "加载中...",
-		"name": "名称",
-		"no": "否",
-		"noData": "暂无数据",
-		"completed": "已完成",
-		"failed": "已失败",
-		"running": "运行中",
-		"save": "保存",
-		"saving": "保存中…",
-		"schedule": "定时任务",
-		"selectAgent": "选择 Agent",
-		"settings": "设置",
-		"success": "成功",
-		"team": "团队",
-		"leader": "队长",
-		"worker": "成员",
-		"time": "时间",
-		"yes": "是",
-		"deleteTitle": "删除{{entity}} \"{{name}}\"？",
-		"deleteDescription": "此操作无法撤销。"
-	},
-	"error": {
-		"description": "页面遇到意外错误。你可以重试或返回首页。",
-		"retry": "重试",
-		"home": "返回首页"
-	},
-	"tool": {
-		"moreLines": "... 还有 {{count}} 行",
-		"read": {
-			"name": "读取",
-			"fileCount_one": "{{count}} 个文件",
-			"fileCount_other": "{{count}} 个文件",
-			"lineCount_one": "读取 {{formatted}} 行",
-			"lineCount_other": "读取 {{formatted}} 行"
-		},
-		"glob": {
-			"name": "Glob"
-		},
-		"taskCreate": {
-			"name": "TaskCreate",
-			"label": "创建",
-			"count_one": "{{count}} 个任务",
-			"count_other": "{{count}} 个任务"
-		},
-		"grep": {
-			"name": "Grep"
-		},
-		"sections": {
-			"command": "命令",
-			"input": "输入",
-			"output": "输出"
-		},
-		"group": {
-			"title": "工具调用 · {{count}} 步",
-			"failed": "{{count}} 步失败"
-		}
-	},
-	"textInput": {
-		"toComplete": "补全",
-		"newLine": "换行",
-		"attach": "添加附件",
-		"attachNotSupported": "当前模型不支持文件附件",
-		"send": "发送"
-	},
-	"confirmCard": {
-		"toConfirm": "确认",
-		"yesWithRule": "是，且该次对话中都允许 {{toolName}} 执行 {{ruleContent}}"
-	},
-	"messageBubble": {
-		"thinking": "思考中",
-		"audioGenerating": "正在生成音频…",
-		"playAudio": "播放音频",
-		"pauseAudio": "暂停音频",
-		"running": "运行中...",
-		"hintSource": {
-			"tool_output": "工具输出",
-			"team_message": "团队消息",
-			"schedule": "定时任务"
-		},
-		"copy": "复制",
-		"copied": "已复制到剪贴板"
-	},
-	"chat": {
-		"inputPlaceholder": "描述你的分析任务，例如：对 data/ 下的 PBMC 3k 数据做质控与细胞注释…",
-		"placeholder": "描述你的分析任务，例如：对 data/ 下的 PBMC 3k 数据做质控与细胞注释…",
-		"send": "发送",
-		"confirmToolCall": "允许此操作？",
-		"newSession": "新会话",
-		"noSessions": "暂无会话",
-		"noMessages": "暂无消息",
-		"noMessagesDesc": "发送一条消息，例如「帮我分析 data/ 下的表达矩阵」，开始新的对话",
-		"backToBottom": "回到底部",
-		"error": {
-			"rateLimit": "模型繁忙（触发限流），自动重试后仍未成功，请稍候再发。",
-			"busy": "正在处理上一条消息，请稍候片刻再发送。",
-			"network": "网络异常，请检查连接后重试。",
-			"unknown": "出了点问题，请重试。",
-			"retry": "重试",
-			"technicalDetails": "技术细节"
-		},
-		"session": {
-			"label": "会话",
-			"emptyTitle": "暂无会话",
-			"emptyNoAgent": "请先选择一个 Agent。",
-			"emptyHasAgent": "创建会话开始对话。"
-		},
-		"project": {
-			"label": "项目",
-			"newSessionInProject": "新建会话",
-			"create": "新建项目",
-			"emptyTitle": "暂无项目",
-			"emptyDescription": "创建项目以组织会话并绑定独立工作目录。",
-			"noAgentHint": "暂无可用 Agent，无法创建项目。",
-			"otherSessions": "其他会话"
-		}
-	},
-	"dialog-project": {
-		"createTitle": "新建项目",
-		"editTitle": "重命名项目",
-		"description": "项目将一组会话绑定到同一个 Agent 与独立的工作目录。",
-		"nameLabel": "名称",
-		"namePlaceholder": "PBMC 3k 质控与注释",
-		"descLabel": "描述",
-		"descPlaceholder": "例如：对 data/ 下的表达矩阵做质控、聚类与细胞类型注释",
-		"agentLabel": "所属 Agent",
-		"agentPlaceholder": "选择 Agent",
-		"noAgents": "暂无可用 Agent，无法创建项目。"
-	},
-	"dialog-project-delete": {
-		"entity": "项目",
-		"confirm": "删除",
-		"description": "将同时删除该项目下的所有会话与工作目录中的全部文件，此操作无法撤销。"
-	},
-	"project-files": {
-		"noProject": "当前会话不属于任何项目，暂无可查看的项目文件。",
-		"noFiles": "工作目录暂无文件。",
-		"userRoot": "我的工作目录",
-		"backToTree": "返回文件列表",
-		"truncated": "文件过大，仅显示前 256 KB。"
-	},
-	"right-panel": {
-		"tasks": "待办",
-		"files": "文件",
-		"toggle": "切换右侧面板"
-	},
-	"dialog-session-delete": {
-		"entity": "会话",
-		"confirm": "删除"
-	},
-	"dialog-session-rename": {
-		"title": "重命名会话",
-		"description": "为该会话设置新名称。",
-		"label": "名称",
-		"placeholder": "会话名称"
-	},
-	"session-menu": {
-		"rename": "重命名",
-		"delete": "删除"
-	},
-	"permission-mode": {
-		"placeholder": "选择权限模式",
-		"trigger-tooltip": "权限模式",
-		"label": "权限模式",
-		"default-tooltip": "默认模式：所有操作需要明确授权（最安全）",
-		"accept_edits-tooltip": "自动允许工作目录内的文件读写及文件系统命令（mkdir、rm、mv 等），其他操作按正常规则处理",
-		"explore-tooltip": "只读模式：允许读取/Grep/Glob 工具，禁止写入/编辑/Bash 等修改操作",
-		"bypass-tooltip": "所有操作自动允许，无需权限检查（适用于可信/沙箱环境）",
-		"dont_ask-tooltip": "将所有 ASK 决策转为 DENY，适合定时任务或用户不在场时的后台执行"
-	},
-	"dialog-mcp-create": {
-		"title": "添加 MCP 服务器",
-		"description": "通过配置添加新的 MCP 服务器。",
-		"configLabel": "MCP 配置",
-		"keepAlive": "保持连接",
-		"keepAliveDesc": "在交互间保持状态。适用于浏览器操作或其他长时间运行的 MCP。",
-		"adding": "添加中…",
-		"added": "已添加",
-		"parseError": "JSON 配置无效：{{message}}",
-		"missingMcpServers": "配置中必须包含 \"mcpServers\" 对象。",
-		"emptyMcpServers": "配置中未找到 MCP 服务器。"
-	},
-	"dialog-mcp-delete": {
-		"entity": "MCP 服务器",
-		"skillEntity": "技能",
-		"skillDescription": "确定要将该技能从工作区中移除吗？"
-	},
-	"dialog-skill-add": {
-		"title": "添加技能",
-		"description": "输入技能目录的路径以添加到工作区。",
-		"pathLabel": "技能路径",
-		"pathPlaceholder": "/path/to/skill"
-	},
-	"schedule": {
-		"calendar": "日历",
-		"createSchedule": {
-			"description": "为 Agent 设置定时或一次性的计划任务。",
-			"descriptionLabel": "描述",
-			"descriptionPlaceholder": "描述这个计划任务的用途...",
-			"namePlaceholder": "例如：每日报告",
-			"title": "创建定时任务"
-		},
-		"deleteSchedule": {
-			"entity": "定时任务",
-			"successToast": "定时任务已删除。"
-		},
-		"endAt": "结束日期",
-		"end_at": "结束时间",
-		"executionHistory": "执行历史",
-		"freqDaily": "每天",
-		"freqMonthly": "每月",
-		"freqOnce": "一次",
-		"freqWeekly": "每周",
-		"frequency": "频率",
-		"friday": "周五",
-		"list": "列表",
-		"monday": "周一",
-		"more": "更多",
-		"nextMonth": "下个月",
-		"nextYear": "下一年",
-		"noExecutions": "暂无执行记录",
-		"noExecutionsDescription": "该定时任务尚未执行过。",
-		"noSchedules": "暂无定时任务",
-		"noSchedulesDescription": "创建定时任务以自动化 Agent 任务。",
-		"pickDate": "选择日期",
-		"permissionMode": "权限模式",
-		"timezone": "时区",
-		"triggerTime": "触发时间",
-		"createdAt": "创建时间",
-		"dayOfMonthSuffix": "日",
-		"stateful": "有状态",
-		"statefulDesc": "开启后，每次触发复用同一个会话以累积上下文；关闭则每次触发都创建新会话。",
-		"previousMonth": "上个月",
-		"previousYear": "上一年",
-		"saturday": "周六",
-		"startAt": "开始时间",
-		"sunday": "周日",
-		"thursday": "周四",
-		"today": "今天",
-		"tuesday": "周二",
-		"wednesday": "周三"
-	},
-	"login": {
-		"title": "登录 Novae 生信平台",
-		"description": "生信智能分析平台 —— 请输入用户名和密码以开始使用。",
-		"username": "用户名",
-		"usernamePlaceholder": "请输入用户名",
-		"password": "密码",
-		"passwordPlaceholder": "请输入密码",
-		"submit": "登录",
-		"submitting": "登录中…",
-		"error": "用户名或密码错误。"
-	},
-	"account": {
-		"logout": "退出登录"
-	},
-	"settings": {
-		"title": "设置",
-		"description": "管理账号、偏好与工作目录文件。",
-		"accountTab": "账号",
-		"generalTab": "通用",
-		"filesTab": "文件",
-		"usersTab": "用户管理",
-		"aboutTab": "关于",
-		"username": "用户名",
-		"role": "角色",
-		"language": "语言",
-		"filesHint": "浏览你的工作目录（顶层为各项目目录）。",
-		"aboutProduct": "Novae · 生信智能分析平台",
-		"aboutTagline": "面向生物信息分析的 AI Agent 平台。",
-		"version": "版本",
-		"users": {
-			"listLabel": "已有用户",
-			"createTitle": "新建用户",
-			"usernamePlaceholder": "用户名",
-			"passwordPlaceholder": "密码",
-			"roleUser": "普通用户",
-			"roleAdmin": "管理员",
-			"created": "用户 {{name}} 已创建"
-		}
-	},
-	"tour": {
-		"trigger": "新手引导",
-		"prev": "上一步",
-		"next": "下一步",
-		"finish": "完成",
-		"skip": "跳过",
-		"step": "第 {{current}} / {{total}} 步",
-		"createProject": {
-			"title": "创建项目",
-			"content": "先创建一个项目 —— 会话与文件都归属于项目。"
-		},
-		"permissionMode": {
-			"title": "权限模式",
-			"content": "决定工具调用是否需要确认。"
-		},
-		"chatInput": {
-			"title": "开始对话",
-			"content": "描述你的分析任务并回车发送，回形针可附加数据文件。"
-		}
-	},
-	"task-panel": {
-		"heading": "任务",
-		"noTasks": "暂无任务。",
-		"pending": "待处理",
-		"inProgress": "进行中",
-		"completed": "已完成",
-		"blockedBy": "依赖"
-	},
-	"team-sidebar": {
-		"membersHeading": "成员",
-		"noMembers": "还没有成员——让队长用 AgentCreate 添加一个。",
-		"running": "运行中",
-		"idle": "空闲",
-		"missingSession": "（无会话）"
-	}
+  "common": {
+    "add": "添加",
+    "agent": "Agent",
+    "brandSubtitle": "生信智能分析平台",
+    "cancel": "取消",
+    "chat": "聊天",
+    "close": "关闭",
+    "confirm": "确认",
+    "create": "创建",
+    "creating": "创建中…",
+    "date": "日期",
+    "delete": "删除",
+    "deleting": "删除中…",
+    "disabled": "已禁用",
+    "edit": "编辑",
+    "error": "出错了",
+    "information": "信息",
+    "interrupted": "已中断",
+    "loading": "加载中...",
+    "name": "名称",
+    "no": "否",
+    "noData": "暂无数据",
+    "completed": "已完成",
+    "failed": "已失败",
+    "running": "运行中",
+    "save": "保存",
+    "saving": "保存中…",
+    "schedule": "定时任务",
+    "selectAgent": "选择 Agent",
+    "settings": "设置",
+    "success": "成功",
+    "team": "团队",
+    "leader": "队长",
+    "worker": "成员",
+    "time": "时间",
+    "yes": "是",
+    "deleteTitle": "删除{{entity}} \"{{name}}\"？",
+    "deleteDescription": "此操作无法撤销。",
+    "workspace": "工作区",
+    "language": "语言"
+  },
+  "error": {
+    "description": "页面遇到意外错误。你可以重试或返回首页。",
+    "retry": "重试",
+    "home": "返回首页"
+  },
+  "tool": {
+    "moreLines": "... 还有 {{count}} 行",
+    "read": {
+      "name": "读取",
+      "fileCount_one": "{{count}} 个文件",
+      "fileCount_other": "{{count}} 个文件",
+      "lineCount_one": "读取 {{formatted}} 行",
+      "lineCount_other": "读取 {{formatted}} 行"
+    },
+    "glob": {
+      "name": "Glob"
+    },
+    "taskCreate": {
+      "name": "TaskCreate",
+      "label": "创建",
+      "count_one": "{{count}} 个任务",
+      "count_other": "{{count}} 个任务"
+    },
+    "grep": {
+      "name": "Grep"
+    },
+    "sections": {
+      "command": "命令",
+      "input": "输入",
+      "output": "输出"
+    },
+    "group": {
+      "title": "工具调用 · {{count}} 步",
+      "failed": "{{count}} 步失败"
+    }
+  },
+  "textInput": {
+    "toComplete": "补全",
+    "newLine": "换行",
+    "attach": "添加附件",
+    "attachNotSupported": "当前模型不支持文件附件",
+    "send": "发送",
+    "stop": "停止生成"
+  },
+  "confirmCard": {
+    "toConfirm": "确认",
+    "yesWithRule": "是，且该次对话中都允许 {{toolName}} 执行 {{ruleContent}}"
+  },
+  "messageBubble": {
+    "thinking": "思考中",
+    "audioGenerating": "正在生成音频…",
+    "playAudio": "播放音频",
+    "pauseAudio": "暂停音频",
+    "running": "运行中...",
+    "hintSource": {
+      "tool_output": "工具输出",
+      "team_message": "团队消息",
+      "schedule": "定时任务"
+    },
+    "copy": "复制",
+    "copied": "已复制到剪贴板"
+  },
+  "chat": {
+    "inputPlaceholder": "描述你的分析任务，例如：对 data/ 下的 PBMC 3k 数据做质控与细胞注释…",
+    "placeholder": "描述你的分析任务，例如：对 data/ 下的 PBMC 3k 数据做质控与细胞注释…",
+    "send": "发送",
+    "confirmToolCall": "允许此操作？",
+    "newSession": "新会话",
+    "noSessions": "暂无会话",
+    "noMessages": "暂无消息",
+    "noMessagesDesc": "发送一条消息，例如「帮我分析 data/ 下的表达矩阵」，开始新的对话",
+    "backToBottom": "回到底部",
+    "error": {
+      "rateLimit": "模型繁忙（触发限流），自动重试后仍未成功，请稍候再发。",
+      "busy": "正在处理上一条消息，请稍候片刻再发送。",
+      "network": "网络异常，请检查连接后重试。",
+      "unknown": "出了点问题，请重试。",
+      "retry": "重试",
+      "technicalDetails": "技术细节"
+    },
+    "session": {
+      "label": "会话",
+      "emptyTitle": "暂无会话",
+      "emptyNoAgent": "请先选择一个 Agent。",
+      "emptyHasAgent": "创建会话开始对话。"
+    },
+    "project": {
+      "label": "项目",
+      "newSessionInProject": "新建会话",
+      "create": "新建项目",
+      "emptyTitle": "暂无项目",
+      "emptyDescription": "创建项目以组织会话并绑定独立工作目录。",
+      "noAgentHint": "暂无可用 Agent，无法创建项目。",
+      "otherSessions": "其他会话"
+    }
+  },
+  "dialog-project": {
+    "createTitle": "新建项目",
+    "editTitle": "重命名项目",
+    "description": "项目将一组会话绑定到同一个 Agent 与独立的工作目录。",
+    "nameLabel": "名称",
+    "namePlaceholder": "PBMC 3k 质控与注释",
+    "descLabel": "描述",
+    "descPlaceholder": "例如：对 data/ 下的表达矩阵做质控、聚类与细胞类型注释",
+    "agentLabel": "所属 Agent",
+    "agentPlaceholder": "选择 Agent",
+    "noAgents": "暂无可用 Agent，无法创建项目。"
+  },
+  "dialog-project-delete": {
+    "entity": "项目",
+    "confirm": "删除",
+    "description": "将同时删除该项目下的所有会话与工作目录中的全部文件，此操作无法撤销。"
+  },
+  "project-files": {
+    "noProject": "当前会话不属于任何项目，暂无可查看的项目文件。",
+    "noFiles": "工作目录暂无文件。",
+    "userRoot": "我的工作目录",
+    "backToTree": "返回文件列表",
+    "truncated": "文件过大，仅显示前 256 KB。"
+  },
+  "right-panel": {
+    "tasks": "待办",
+    "files": "文件",
+    "toggle": "切换右侧面板"
+  },
+  "workspace-drawer": {
+    "description": "智能体的工作空间。",
+    "mcpHint": "当前工作区配置的 MCP 服务器。",
+    "mcpSearchPlaceholder": "搜索工作区中的 MCP",
+    "noMcps": "未找到 MCP",
+    "skillsTab": "技能",
+    "skillsHint": "当前工作区配置的技能。",
+    "skillSearchPlaceholder": "搜索工作区中的技能",
+    "noSkills": "未找到技能",
+    "addMcp": "添加 MCP",
+    "addSkill": "添加技能",
+    "toolsCount": "{{count}} 个工具"
+  },
+  "dialog-session-delete": {
+    "entity": "会话",
+    "confirm": "删除"
+  },
+  "dialog-session-rename": {
+    "title": "重命名会话",
+    "description": "为该会话设置新名称。",
+    "label": "名称",
+    "placeholder": "会话名称"
+  },
+  "session-menu": {
+    "rename": "重命名",
+    "delete": "删除"
+  },
+  "permission-mode": {
+    "placeholder": "选择权限模式",
+    "trigger-tooltip": "权限模式",
+    "label": "权限模式",
+    "default-tooltip": "默认模式：所有操作需要明确授权（最安全）",
+    "accept_edits-tooltip": "自动允许工作目录内的文件读写及文件系统命令（mkdir、rm、mv 等），其他操作按正常规则处理",
+    "explore-tooltip": "只读模式：允许读取/Grep/Glob 工具，禁止写入/编辑/Bash 等修改操作",
+    "bypass-tooltip": "所有操作自动允许，无需权限检查（适用于可信/沙箱环境）",
+    "dont_ask-tooltip": "将所有 ASK 决策转为 DENY，适合定时任务或用户不在场时的后台执行"
+  },
+  "dialog-mcp-create": {
+    "title": "添加 MCP 服务器",
+    "description": "通过配置添加新的 MCP 服务器。",
+    "configLabel": "MCP 配置",
+    "keepAlive": "保持连接",
+    "keepAliveDesc": "在交互间保持状态。适用于浏览器操作或其他长时间运行的 MCP。",
+    "adding": "添加中…",
+    "added": "已添加",
+    "parseError": "JSON 配置无效：{{message}}",
+    "missingMcpServers": "配置中必须包含 \"mcpServers\" 对象。",
+    "emptyMcpServers": "配置中未找到 MCP 服务器。"
+  },
+  "dialog-mcp-delete": {
+    "entity": "MCP 服务器",
+    "skillEntity": "技能",
+    "skillDescription": "确定要将该技能从工作区中移除吗？"
+  },
+  "dialog-skill-add": {
+    "title": "添加技能",
+    "description": "输入技能目录的路径以添加到工作区。",
+    "pathLabel": "技能路径",
+    "pathPlaceholder": "/path/to/skill"
+  },
+  "schedule": {
+    "calendar": "日历",
+    "createSchedule": {
+      "description": "为 Agent 设置定时或一次性的计划任务。",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "描述这个计划任务的用途...",
+      "namePlaceholder": "例如：每日报告",
+      "title": "创建定时任务"
+    },
+    "deleteSchedule": {
+      "entity": "定时任务",
+      "successToast": "定时任务已删除。"
+    },
+    "endAt": "结束日期",
+    "end_at": "结束时间",
+    "executionHistory": "执行历史",
+    "freqDaily": "每天",
+    "freqMonthly": "每月",
+    "freqOnce": "一次",
+    "freqWeekly": "每周",
+    "frequency": "频率",
+    "friday": "周五",
+    "list": "列表",
+    "monday": "周一",
+    "more": "更多",
+    "nextMonth": "下个月",
+    "nextYear": "下一年",
+    "noExecutions": "暂无执行记录",
+    "noExecutionsDescription": "该定时任务尚未执行过。",
+    "noSchedules": "暂无定时任务",
+    "noSchedulesDescription": "创建定时任务以自动化 Agent 任务。",
+    "pickDate": "选择日期",
+    "permissionMode": "权限模式",
+    "timezone": "时区",
+    "triggerTime": "触发时间",
+    "createdAt": "创建时间",
+    "dayOfMonthSuffix": "日",
+    "stateful": "有状态",
+    "statefulDesc": "开启后，每次触发复用同一个会话以累积上下文；关闭则每次触发都创建新会话。",
+    "previousMonth": "上个月",
+    "previousYear": "上一年",
+    "saturday": "周六",
+    "startAt": "开始时间",
+    "sunday": "周日",
+    "thursday": "周四",
+    "today": "今天",
+    "tuesday": "周二",
+    "wednesday": "周三"
+  },
+  "login": {
+    "title": "登录 Novae 生信平台",
+    "description": "生信智能分析平台 —— 请输入用户名和密码以开始使用。",
+    "username": "用户名",
+    "usernamePlaceholder": "请输入用户名",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "submit": "登录",
+    "submitting": "登录中…",
+    "error": "用户名或密码错误。"
+  },
+  "account": {
+    "logout": "退出登录"
+  },
+  "settings": {
+    "title": "设置",
+    "description": "管理账号、偏好与工作目录文件。",
+    "accountTab": "账号",
+    "filesTab": "文件",
+    "usersTab": "用户管理",
+    "aboutTab": "关于",
+    "username": "用户名",
+    "role": "角色",
+    "language": "语言",
+    "filesHint": "浏览你的工作目录（顶层为各项目目录）。",
+    "aboutProduct": "Novae · 生信智能分析平台",
+    "aboutTagline": "面向生物信息分析的 AI Agent 平台。",
+    "version": "版本",
+    "users": {
+      "createTitle": "新建用户",
+      "usernamePlaceholder": "用户名",
+      "passwordPlaceholder": "密码",
+      "roleUser": "普通用户",
+      "roleAdmin": "管理员",
+      "created": "用户 {{name}} 已创建",
+      "total": "共 {{count}} 个用户",
+      "colUser": "用户",
+      "colRole": "角色",
+      "colCreatedAt": "创建时间",
+      "colActions": "操作",
+      "me": "我",
+      "delete": "删除",
+      "deleteTitle": "删除用户",
+      "deleteConfirm": "确认删除用户「{{name}}」？其项目文件仍保留在磁盘上，但该账号将无法再登录。",
+      "deleted": "用户 {{name}} 已删除"
+    },
+    "backToWorkspace": "返回工作区",
+    "languageHint": "选择应用界面的显示语言。",
+    "usageTab": "使用统计",
+    "password": {
+      "label": "修改密码",
+      "change": "修改",
+      "current": "当前密码",
+      "new": "新密码",
+      "confirm": "确认新密码",
+      "empty": "新密码不能为空",
+      "mismatch": "两次输入的新密码不一致",
+      "changed": "密码已修改，下次登录请使用新密码"
+    }
+  },
+  "tour": {
+    "trigger": "新手引导",
+    "prev": "上一步",
+    "next": "下一步",
+    "finish": "完成",
+    "skip": "跳过",
+    "step": "第 {{current}} / {{total}} 步",
+    "createProject": {
+      "title": "创建项目",
+      "content": "先创建一个项目 —— 会话与文件都归属于项目。"
+    },
+    "permissionMode": {
+      "title": "权限模式",
+      "content": "决定工具调用是否需要确认。"
+    },
+    "chatInput": {
+      "title": "开始对话",
+      "content": "描述你的分析任务并回车发送，回形针可附加数据文件。"
+    }
+  },
+  "task-panel": {
+    "heading": "任务",
+    "noTasks": "暂无任务。",
+    "pending": "待处理",
+    "inProgress": "进行中",
+    "completed": "已完成",
+    "blockedBy": "依赖"
+  },
+  "team-sidebar": {
+    "membersHeading": "成员",
+    "noMembers": "还没有成员——让队长用 AgentCreate 添加一个。",
+    "running": "运行中",
+    "idle": "空闲",
+    "missingSession": "（无会话）"
+  },
+  "usage": {
+    "last7Days": "最近 7 天",
+    "last30Days": "最近 30 天",
+    "tokensUsed": "Token 用量",
+    "sessions": "会话数量",
+    "messages": "消息数量",
+    "activeDays": "活跃天数",
+    "streakDays": "当前连续天数",
+    "topModel": "最常用模型",
+    "shareOf": "占比 {{share}}%",
+    "heatmap": "活跃热力图",
+    "dailyTrend": "按天 Token 趋势",
+    "less": "较少",
+    "more": "较多",
+    "noData": "暂无数据",
+    "cellActivity": "{{date}}：{{count}} 条消息"
+  }
 }
