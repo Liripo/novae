@@ -47,7 +47,7 @@ docker run -d -p 6379:6379 redis:7
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/novae.git
+git clone https://github.com/liripo/novae.git
 cd novae
 
 # 配置环境
